@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+
+
+<head>
+
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Startup Equity Calculator</title>
+
+    <meta name="description" content="A worksheet and calculator for modeling SAFE and priced round cap tables." />
+
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2248%22 fill=%22%232563eb%22/></svg>" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="tags.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+
+
+<body>
+
+    <!-- Global Header -->
+
+
+
+
+
+    <div class="container">
+
+        <!-- Page Title Block -->
+
+        <div class="text-center mb-8 mt-8">
+
+            <h1 style="font-size: 2.5rem; line-height: 3rem; margin-bottom: 1rem">
+
+                SAFE Calculator
+
+            </h1>
+
+            <p class="card-subtext" style="
+
+            max-width: 600px;
+
+            margin: 0 auto;
+
+            font-size: 16px;
+
+            line-height: 1.5;
+
+          ">
+
+                Model pre-money and post-money SAFEs using YC-style conversion logic
+
+                and see real-time dilution across founders, investors, and option
+
+                pools.
+
+            </p>
+
+        </div>
+
+
+
+        <main>
+
+            <!-- Calculator Card -->
+
+            <div class="calculator-shell">
+
+                <!-- Section 1: Existing Cap Table -->
+
+                <section>
+
+                    <div class="card-header">
+
+                        <div class="card-title-group">
+
+                            <h2>Existing cap table</h2>
+
+                            <p class="card-subtext">
+
+                                Define the company’s ownership as it stands today, before any
+
+                                new SAFEs or priced financing. This includes founders, issued
+
+                                equity, and the current unallocated option pool.
+
+                            </p>
+
+                        </div>
+
+                        <button class="btn btn-primary" onclick="addRow('common')">
+
+                            + Add shareholder
+
+                        </button>
+
+                    </div>
+
+                    <div class="table-container">
+
+                        <table class="cap-table">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th class="col-name">Shareholder</th>
+
+                                    <th class="col-cat">Category</th>
+
+                                    <th class="col-shares">Shares</th>
+
+                                    <th class="col-pct text-right">% Ownership</th>
+
+                                    <th class="col-actions text-right"></th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody id="shareholders-body">
+
+                                <!-- JS rendered -->
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                    <div id="cap-table-footer" class="card-footer">
+
+                        <span>Total fully diluted shares</span>
+
+                        <span id="total-shares-val" class="footer-value-primary">0</span>
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- Section 2: SAFEs -->
+
+                <section>
+
+                    <div class="card-header">
+
+                        <div class="card-title-group">
+
+                            <h2>SAFEs</h2>
+
+                            <p class="card-subtext">
+
+                                Add each SAFE and its economic terms, including valuation
+
+                                caps, discounts, and MFN provisions. These instruments will
+
+                                convert in the priced round and directly shape post-financing
+
+                                ownership.
+
+                            </p>
+
+                        </div>
+
+                        <button class="btn btn-primary" onclick="addRow('safe')">
+
+                            + Add SAFE
+
+                        </button>
+
+                    </div>
+
+                    <div class="table-container">
+
+                        <table class="safe-table">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th class="col-name">Investor</th>
+
+                                    <th class="col-inv">Investment</th>
+
+                                    <th class="col-cap">Cap</th>
+
+                                    <th class="col-disc">Discount</th>
+
+                                    <th class="col-type">Type</th>
+
+                                    <th class="col-actions text-right"></th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody id="safes-body">
+
+                                <!-- JS rendered -->
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- Section 3: Priced Round -->
+
+                <section id="priced-round-card">
+
+                    <!-- 1. Card Header -->
+
+                    <div class="card-header">
+
+                        <div class="card-title-group">
+
+                            <h2>Priced Round</h2>
+
+                            <p class="card-subtext">
+
+                                Set the valuation and new capital raised in the financing
+
+                                round. Any option pool top-ups are applied here and determine
+
+                                how dilution is allocated.
+
+                            </p>
+
+                        </div>
+
+                        <button class="btn btn-primary" onclick="addRow('series')">
+
+                            + Add investor
+
+                        </button>
+
+                    </div>
+
+
+
+                    <div class="section-divider"></div>
+
+
+
+                    <!-- 2. Top Input Row (User-editable inputs ONLY) -->
+
+                    <div class="priced-round-inputs">
+
+                        <div class="input-group">
+
+                            <label class="detail-label">Round name</label>
+
+                            <input class="input" value="Series A" onchange="updateGlobal('roundName', this.value)" />
+
+                        </div>
+
+                        <div class="input-group">
+
+                            <label class="detail-label">Pre-money valuation ($)</label>
+
+                            <input class="input" type="text" id="pre-money-input" value="$0" onfocus="this.select()"
+                                oninput="formatInputLive(this, true)" onchange="updateGlobal('preMoney', this.value)" />
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="section-divider"></div>
+
+
+
+                    <!-- 3. Investor Section (Table Layout) -->
+
+                    <div class="table-container">
+
+                        <table>
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>Investor</th>
+
+                                    <th>Investment</th>
+
+                                    <th class="col-actions text-right"></th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody id="series-body">
+
+                                <!-- JS rendered -->
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+
+
+                    <!-- 3. Option Pool Section -->
+
+                    <div class="option-pool-section">
+
+                        <div class="option-pool-left">
+
+                            <label class="detail-label">Target option pool (post-round)</label>
+
+                            <div class="percentage-input-wrapper">
+
+                                <input class="input compact-input" type="text" id="target-options-input" value="10"
+                                    oninput="formatInputLive(this, false)"
+                                    onchange="updateGlobal('targetOptionsPool', this.value)" />
+
+                                <span class="percentage-suffix">%</span>
+
+                            </div>
+
+                        </div>
+
+                        <div class="option-pool-summary-panel">
+
+                            <div class="summary-line">
+
+                                <span class="summary-label">Current unallocated pool:</span>
+
+                                <span class="summary-value" id="current-esop-val">750,000</span>
+
+                            </div>
+
+                            <div class="summary-line">
+
+                                <span class="summary-label">Added pool shares:</span>
+
+                                <span class="summary-value summary-value-primary" id="additional-options-val">0</span>
+
+                            </div>
+
+                            <div class="summary-line summary-line-muted">
+
+                                <span>New investors get
+
+                                    <span id="new-investors-shares-val">0</span> shares</span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="section-divider"></div>
+
+
+
+                    <!-- 4. Derived Valuation Summary Strip (Read-only Pricing Outputs) -->
+
+                    <div class="valuation-summary-strip">
+
+                        <div class="valuation-item">
+
+                            <span class="valuation-label">Round PPS</span>
+
+                            <span class="valuation-value" id="round-pps-val">$0.00</span>
+
+                        </div>
+
+                        <div class="valuation-item">
+
+                            <span class="valuation-label">Post-money valuation</span>
+
+                            <span class="valuation-value" id="post-money-val">$0.00</span>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- Section 4: Results -->
+
+                <section id="results-card">
+
+                    <div class="card-header">
+
+                        <div class="card-title-group">
+
+                            <h2>Results</h2>
+
+                            <p class="card-subtext">
+
+                                See the fully diluted ownership and share issuance after all
+
+                                conversions and adjustments. This view shows the combined
+
+                                impact of SAFEs, option pool changes, and the priced round.
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="results-summary-row">
+
+                        <div class="result-tile">
+
+                            <div class="result-tile-label">📈 Total post-round shares</div>
+
+                            <div id="total-post-shares-val" class="result-tile-value">
+
+                                0
+
+                            </div>
+
+                        </div>
+
+                        <div class="result-tile">
+
+                            <div class="result-tile-label">⚖️ Founder ownership</div>
+
+                            <div id="founder-ownership-val" class="result-tile-value">
+
+                                0.00%
+
+                            </div>
+
+                        </div>
+
+                        <div class="result-tile">
+
+                            <div class="result-tile-label">📉 Founder dilution</div>
+
+                            <div id="founder-dilution-val" class="result-tile-value">
+
+                                0.00%
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="results-charts-row">
+
+                        <div class="chart-column">
+
+                            <div class="chart-title">Ownership split</div>
+
+                            <div id="pie-chart-container" class="donut-container">
+
+                                <!-- Donut chart rendered here -->
+
+                            </div>
+
+                        </div>
+
+                        <div class="chart-column">
+
+                            <div class="chart-title">Founder dilution (pre vs post)</div>
+
+                            <div id="bar-chart-container" class="bar-chart-container">
+
+                                <!-- Bar chart rendered here -->
+
+                            </div>
+
+                            <div id="dilution-summary-note" class="bar-caption">
+
+                                Founders diluted by 0.00 percentage points.
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="table-container max-w-4xl mx-auto">
+
+                        <h3 class="subsection-title">Ownership breakdown</h3>
+
+                        <table class="results-table">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th class="col-cat">Category</th>
+
+                                    <th class="text-right">Shares (Pre)</th>
+
+                                    <th class="text-right">Shares (Post)</th>
+
+                                    <th class="text-right">% (Pre)</th>
+
+                                    <th class="text-right">% (Post)</th>
+
+                                    <th class="text-right">PPS</th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody id="post-round-table">
+
+                                <!-- JS rendered -->
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- Section 5: AI Equity Advisor -->
+
+                <section id="ai-advisor-section">
+
+                    <div class="card-header">
+
+                        <div class="card-title-group">
+
+                            <h2>AI Equity Advisor</h2>
+
+                            <p class="card-subtext">
+
+                                Analyzes your inputs and surfaces important observations,
+
+                                assumptions, or potential risks.
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="ai-insights-box">
+
+                        <div id="ai-insights-container" class="ai-insights-content">
+
+                            <!-- JS rendered insights -->
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+            </div>
+
+        </main>
+
+    </div>
+
+
+
+    <script src="script.js"></script>
+
+
+
+    <!-- Global Footer -->
+
+
+
+</body>
+
+
+
+</html>
