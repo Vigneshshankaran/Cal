@@ -6,7 +6,7 @@
 
 :root {
     /* Color System - Modern Indigo/Slate Palette */
-    --primary: #4F46E5;
+    --primary: #635bff;
     /* Indigo 600 */
     --primary-light: #818CF8;
     /* Indigo 400 */
@@ -18,11 +18,11 @@
     --accent-light: #CFFAFE;
     /* Cyan 100 */
 
-    --text-dark: #0F172A;
+    --text-dark: #0d0a40;
     /* Slate 900 */
     --text-medium: #475569;
     /* Slate 600 */
-    --text-light: #94A3B8;
+    --text-light: rgba(112, 109, 161, 1);
     /* Slate 400 */
 
     --border: #E2E8F0;
@@ -127,8 +127,8 @@ body {
 h1 {
     font-family: "Inter", sans-serif;
     font-size: 2.5rem;
-    line-height: 1.2;
-    font-weight: 600;
+    line-height: 3rem;
+    font-weight: 500;
     color: var(--text-dark);
     margin-bottom: 1rem;
 }
@@ -138,7 +138,7 @@ h2 {
     font-family: "Inter", sans-serif;
     font-size: 1.25rem;
     line-height: 1.4;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-dark);
     margin-bottom: 0;
 }
@@ -148,7 +148,7 @@ h3 {
     font-family: "Inter", sans-serif;
     font-size: 1rem;
     line-height: 1.5;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-medium);
     margin-bottom: 0.5rem;
 }
@@ -180,7 +180,7 @@ h3 {
 
 strong,
 b {
-    font-weight: 600;
+    font-weight: 500;
 }
 
 /* ============================================
@@ -272,7 +272,7 @@ b {
 /* Footer value with primary color */
 .footer-value-primary {
     color: var(--primary);
-    font-weight: 600;
+    font-weight: 500;
 }
 
 /* ============================================
@@ -378,7 +378,7 @@ input[type="number"] {
     border-radius: var(--radius-small);
     border: 1px solid var(--border);
     background-color: var(--white);
-    color: var(--text-dark);
+    color: #181d27;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -386,8 +386,13 @@ input[type="number"] {
 .input:focus,
 input[type="text"]:focus,
 input[type="number"]:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px var(--accent-light);
+    box-shadow: 0px 2px 4px -2px rgba(0, 0, 0, 0.1);
+
+
+
+    box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+    border: 2px solid rgba(95, 70, 255, 1);
 }
 
 .input:disabled,
@@ -554,7 +559,8 @@ table {
 thead {
     position: sticky;
     top: 0;
-    background-color: var(--white);
+    background: rgba(250, 250, 250, 1);
+    border-bottom: 0.56px solid rgba(233, 234, 235, 1);
 }
 
 th {
@@ -562,11 +568,11 @@ th {
     font-size: 0.75rem;
     font-weight: 500;
     text-align: center;
-    text-transform: uppercase;
     color: var(--text-light);
     padding: 0.75rem;
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
+
 }
 
 td {
@@ -704,14 +710,13 @@ table .percentage-input-wrapper .percentage-suffix {
     font-size: 0.75rem;
     font-weight: 500;
     color: var(--text-light);
-    text-transform: uppercase;
     margin-bottom: 0.5rem;
 }
 
 .metric-card .metric-value,
 .metric-value {
     font-size: 1.5rem;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-dark);
     line-height: 1.2;
 }
@@ -834,7 +839,7 @@ table .percentage-input-wrapper .percentage-suffix {
 
 .info-box-title {
     font-size: 0.875rem;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--primary);
     margin-bottom: 0.5rem;
 }
@@ -876,33 +881,22 @@ table .percentage-input-wrapper .percentage-suffix {
     border-radius: var(--radius-medium);
     padding: 2.5rem;
     margin-top: 1.5rem;
-    box-shadow: var(--shadow-card);
     position: relative;
     overflow: hidden;
 }
 
-.ai-insights-box::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 6px;
-    height: 100%;
-    background: linear-gradient(to bottom, var(--primary), var(--accent));
-}
 
 .result-tile {
     background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-medium);
     padding: 1.5rem;
     text-align: center;
-    box-shadow: var(--shadow-card);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
     justify-content: center;
     gap: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+
 }
 
 .ai-insight.result-tile {
@@ -919,24 +913,21 @@ table .percentage-input-wrapper .percentage-suffix {
     gap: 0.5rem;
 }
 
-.result-tile:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
+
 
 .result-tile-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-medium);
-    text-transform: uppercase;
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: rgba(112, 109, 161, 1);
     letter-spacing: 0.05em;
 }
 
 .result-tile-value {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: var(--primary);
-    line-height: 1;
+    font-size: 2.5rem;
+    font-weight: 500;
+    color: rgba(99, 91, 255, 1);
+    letter-spacing: -1.12px;
+    line-height: 3rem;
 }
 
 .ai-insights-header {
@@ -952,7 +943,7 @@ table .percentage-input-wrapper .percentage-suffix {
 
 .ai-insights-header .title {
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--primary);
 }
 
@@ -961,7 +952,7 @@ table .percentage-input-wrapper .percentage-suffix {
     margin: 0 auto;
     line-height: 1.8;
     font-size: 1rem;
-    color: var(--text-medium);
+    color: rgba(13, 10, 64, 1);
 }
 
 .ai-insights-content p {
@@ -970,29 +961,11 @@ table .percentage-input-wrapper .percentage-suffix {
 
 .ai-insights-content strong {
     color: var(--text-dark);
-    font-weight: 600;
+    font-weight: 500;
 }
 
-.ai-insights-content .insight-item {
-    display: flex;
-    gap: 1rem;
-    padding: 1.25rem;
-    background: rgba(255, 255, 255, 0.6);
-    border-radius: var(--radius-small);
-    border: 1px solid var(--border);
-    margin-bottom: 1.25rem;
-    transition: transform 0.2s ease;
-}
 
-.ai-insights-content .insight-item:hover {
-    transform: translateX(4px);
-    background: rgba(255, 255, 255, 0.8);
-}
 
-.ai-insights-content .insight-icon {
-    font-size: 1.5rem;
-    flex-shrink: 0;
-}
 
 .ai-badge {
     display: inline-block;
@@ -1062,7 +1035,6 @@ table .percentage-input-wrapper .percentage-suffix {
     grid-template-columns: 1fr 1fr;
     gap: 2rem;
     margin-bottom: 3rem;
-    align-items: start;
 }
 
 @media (max-width: 768px) {
@@ -1079,12 +1051,11 @@ table .percentage-input-wrapper .percentage-suffix {
     border-radius: var(--radius-medium);
     padding: 2rem;
     border: 1px solid var(--border);
-    box-shadow: var(--shadow-card);
 }
 
 .chart-title {
     font-size: 0.9375rem;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-dark);
     margin-bottom: 2rem;
     text-align: left;
@@ -1094,15 +1065,10 @@ table .percentage-input-wrapper .percentage-suffix {
 .donut-container {
     position: relative;
     width: 100%;
-    height: 280px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--white);
-    border-radius: var(--radius-medium);
     padding: 2rem;
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-card);
 }
 
 .donut-center-text {
@@ -1111,7 +1077,7 @@ table .percentage-input-wrapper .percentage-suffix {
     left: 50%;
     transform: translate(-50%, -50%);
     font-size: 1.25rem;
-    font-weight: 700;
+    font-weight: 500;
     color: var(--text-dark);
 }
 
@@ -1171,29 +1137,43 @@ table .percentage-input-wrapper .percentage-suffix {
 }
 
 .legend-pct {
-    font-weight: 700;
+    font-weight: 500;
     color: var(--text-dark);
 }
 
 /* 3. Ownership Breakdown Table */
 .results-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid rgba(233, 234, 235, 1);
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 .results-table th {
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid rgba(233, 234, 235, 1);
+    border-right: 1px solid rgba(233, 234, 235, 1);
     font-size: 0.75rem;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-light);
-    text-transform: uppercase;
+    background: rgba(250, 250, 250, 1);
+}
+
+.results-table th:last-child {
+    border-right: none;
 }
 
 .results-table td {
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid rgba(233, 234, 235, 1);
+    border-right: 1px solid rgba(233, 234, 235, 1);
     font-size: 0.875rem;
+}
+
+.results-table td:last-child {
+    border-right: none;
 }
 
 .results-table tr:last-child td {
@@ -1206,7 +1186,7 @@ table .percentage-input-wrapper .percentage-suffix {
 
 .post-value {
     color: var(--primary);
-    font-weight: 600;
+    font-weight: 500;
 }
 
 .pps-value {
@@ -1438,12 +1418,11 @@ table .percentage-input-wrapper .percentage-suffix {
     font-size: 0.75rem;
     font-weight: 500;
     color: var(--text-light);
-    text-transform: uppercase;
 }
 
 .valuation-value {
     font-size: 1.25rem;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-dark);
 }
 
@@ -1535,13 +1514,13 @@ table .percentage-input-wrapper .percentage-suffix {
 
 .summary-value {
     color: var(--text-dark);
-    font-weight: 600;
+    font-weight: 500;
 }
 
 /* Primary accent color for highlighted values */
 .summary-value-primary {
     color: var(--primary);
-    font-weight: 600;
+    font-weight: 500;
 }
 
 .summary-line-muted {
@@ -1583,8 +1562,103 @@ table .percentage-input-wrapper .percentage-suffix {
 /* Subsection Title */
 .subsection-title {
     font-size: 0.875rem;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-medium);
     margin-bottom: 0.75rem;
     text-align: center;
+}
+
+
+/* --- Tags --- */
+
+.tag {
+    font-family: inter;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.375rem;
+    border-radius: 9999px;
+    font-size: 0.65rem;
+    font-weight: 500;
+    line-height: 1;
+    margin-left: 0.5rem;
+    letter-spacing: 0.02em;
+    vertical-align: middle;
+}
+
+.tag-pre {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+    /* Amber-600 */
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.tag-post {
+    background-color: rgba(248, 248, 255, 1);
+    color: rgba(99, 91, 255, 1);
+    /* Blue-600 */
+    border: 0.56px solid rgba(201, 198, 255, 1);
+    padding-top: 2px;
+    padding-right: 7px;
+    padding-bottom: 2px;
+    padding-left: 7px;
+
+    border-radius: 5992.3px;
+}
+
+.dark .tag-post {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    /* Blue-400 */
+}
+
+.tag-mfn {
+    background-color: rgba(139, 92, 246, 0.1);
+    color: #7c3aed;
+    /* Violet-600 */
+    border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.dark .tag-mfn {
+    background-color: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+    /* Violet-400 */
+}
+
+.tag-topup {
+    background-color: rgba(236, 253, 243, 1);
+    color: rgba(6, 118, 71, 1);
+    /* Amber-600 */
+    border: 0.56px solid rgba(171, 239, 198, 1);
+    padding-top: 2px;
+    padding-right: 7px;
+    padding-bottom: 2px;
+    padding-left: 7px;
+
+    border-radius: 5992.3px;
+
+
+}
+
+.dark .tag-topup {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    /* Emerald-400 */
+}
+
+/* Input List MFN Tag */
+.mfn-valuation-tag {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.7rem;
+    color: #7c3aed;
+    /* Violet */
+    background: rgba(139, 92, 246, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+    width: fit-content;
+}
+
+.dark .mfn-valuation-tag {
+    color: #a78bfa;
+    background: rgba(139, 92, 246, 0.15);
 }

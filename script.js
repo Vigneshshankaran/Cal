@@ -2121,7 +2121,9 @@ const renderBreakdownTable = (preData, postData, pps) => {
 
     const totalTr = document.createElement("tr");
 
-    totalTr.style.fontWeight = "700";
+    totalTr.style.fontWeight = "500";
+    totalTr.style.backgroundColor = "rgba(250, 250, 250, 1)";
+    totalTr.style.borderBottom = "0.56px solid rgba(233, 234, 235, 1)";
 
 
 
@@ -2173,82 +2175,122 @@ const renderPieChart = (postRound) => {
     const container = document.getElementById("pie-chart-container");
     if (!container) return;
 
+    // 1. Destroy previous chart instance to prevent memory leaks and hover glitches
     if (window.pieChartInstance) {
         window.pieChartInstance.destroy();
+        window.pieChartInstance = null;
     }
 
-    container.innerHTML = '<canvas id="pieChartCanvas"></canvas>';
+    // 2. Setup HTML structure
+    container.innerHTML = `
+        <div style="max-width:100%; margin:auto; position:relative;">
+            <canvas id="pieChartCanvas"></canvas>
+        </div>
+    `;
 
-    const totalShares = postRound && postRound.total ? postRound.total.shares : 0;
+    const totalShares = postRound?.total?.shares || 0;
     if (totalShares <= 0) return;
 
-    const rowData = getRowData(postRound);
-    const labels = rowData.map(row => row.name);
-    const data = rowData.map(row => row.shares);
-    const backgroundColors = rowData.map((_, index) => `var(--color-chart-${(index % 5) + 1})`);
+    // Helper to ensure number formatting doesn't break if global function is missing
+    const formatValue = (val) => {
+        return typeof formatNumberWithCommas === "function"
+            ? formatNumberWithCommas(val)
+            : val.toLocaleString();
+    };
 
-    const ctx = document.getElementById('pieChartCanvas').getContext('2d');
+    const rowData = getRowData(postRound);
+    if (!rowData.length) return;
+
+    const labels = rowData.map(r => r.name);
+    const data = rowData.map(r => r.shares);
+
+    const backgroundColors = [
+        "#6366F1", // indigo
+        "#22D3EE", // cyan
+        "#FBBF24", // amber
+        "#F43F5E", // rose
+        "#8B5CF6"  // violet
+    ];
+
+    const canvas = document.getElementById("pieChartCanvas");
+    const ctx = canvas.getContext("2d");
+
     window.pieChartInstance = new Chart(ctx, {
-        type: 'doughnut',
+        type: "doughnut",
         data: {
-            labels: labels,
+            labels,
             datasets: [{
-                data: data,
+                data,
                 backgroundColor: backgroundColors,
-                borderWidth: 2,
-                borderColor: '#ffffff',
-            }],
+                borderWidth: 0,
+                hoverOffset: 12,
+            }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: true,
-            aspectRatio: 1.8,
-            cutout: '70%',
+            aspectRatio: 1.7,
+            cutout: "72%",
+            animation: {
+                duration: 900,
+                easing: "easeOutQuart"
+            },
             plugins: {
                 legend: {
-                    position: 'right',
-                    align: 'center',
+                    position: "right",
+                    align: "center",
                     labels: {
-                        padding: 16,
+                        padding: 20,
                         usePointStyle: true,
-                        pointStyle: 'circle',
+                        pointStyle: "circle",
+                        boxWidth: 8,
+                        boxHeight: 8,
+                        // This "color" property is a fallback, but the generateLabels 
+                        // return object is the source of truth.
+                        color: "white",
                         font: {
-                            size: 13,
-                            family: "'Inter', sans-serif",
-                            weight: '500'
+                            family: "'Inter', 'system-ui', sans-serif",
+                            size: 10,
+                            weight: "500",
                         },
-                        color: 'var(--text-medium)',
-                        boxWidth: 10,
-                        boxHeight: 10,
-                        generateLabels: function (chart) {
-                            const data = chart.data;
-                            if (data.labels.length && data.datasets.length) {
-                                return data.labels.map((label, i) => {
-                                    const value = data.datasets[0].data[i];
-                                    const percentage = ((value / totalShares) * 100).toFixed(1);
-                                    return {
-                                        text: `${label}  ${percentage}%`,
-                                        fillStyle: data.datasets[0].backgroundColor[i],
-                                        hidden: false,
-                                        index: i
-                                    };
-                                });
-                            }
-                            return [];
+                        generateLabels(chart) {
+                            const ds = chart.data.datasets[0];
+                            return chart.data.labels.map((label, i) => {
+                                const value = ds.data[i];
+                                const percent = ((value / totalShares) * 100).toFixed(1);
+                                return {
+                                    text: `${label}  ·  ${percent}%`,
+                                    fillStyle: ds.backgroundColor[i],
+                                    strokeStyle: "transparent",
+                                    lineWidth: 0,
+                                    index: i,
+                                    // FIX: Explicitly set the font color for the legend item text
+                                    fontColor: "#4A4340",
+                                    hidden: chart.getDatasetMeta(0).data[i].hidden
+                                };
+                            });
                         }
                     }
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                    padding: 12,
-                    cornerRadius: 8,
-                    titleFont: { size: 13, weight: '600' },
-                    bodyFont: { size: 12 },
+                    backgroundColor: "rgba(15, 23, 42, 0.96)",
+                    padding: 14,
+                    cornerRadius: 10,
+                    titleFont: {
+                        family: "Inter, sans-serif",
+                        size: 13,
+                        weight: "600"
+                    },
+                    bodyFont: {
+                        family: "Inter, sans-serif",
+                        size: 12
+                    },
+                    displayColors: false,
                     callbacks: {
-                        label: function (context) {
-                            const value = context.raw;
-                            const percentage = ((value / totalShares) * 100).toFixed(1);
-                            return ` ${formatNumberWithCommas(value)} shares (${percentage}%)`;
+                        label(ctx) {
+                            const value = ctx.raw;
+                            const percent = ((value / totalShares) * 100).toFixed(1);
+                            return `${formatValue(value)} shares • ${percent}%`;
                         }
                     }
                 }
@@ -2447,11 +2489,11 @@ const renderBarChart = (preFounderPct, postFounderPct) => {
                 label: 'Founder Ownership',
                 data: data,
                 backgroundColor: [
-                    getComputedStyle(document.documentElement).getPropertyValue('--chart-5').trim() || '#c7d2fe',
-                    getComputedStyle(document.documentElement).getPropertyValue('--chart-1').trim() || '#818cf8'
+                    getComputedStyle(document.documentElement).getPropertyValue('#635BFF').trim() || '#c7d2fe',
+                    getComputedStyle(document.documentElement).getPropertyValue('#16CAD6').trim() || '#818cf8'
                 ],
-                borderRadius: 8,
-                barPercentage: 0.5
+                barPercentage: 0.45,
+                categoryPercentage: 0.6
             }]
         },
         options: {
@@ -2469,7 +2511,7 @@ const renderBarChart = (preFounderPct, postFounderPct) => {
                     ticks: {
                         callback: (value) => value + "%",
                         font: { size: 12, family: "'Inter', sans-serif" },
-                        color: 'var(--text-medium)'
+                        color: '#4A4340'
                     }
                 },
                 x: {
@@ -2478,7 +2520,7 @@ const renderBarChart = (preFounderPct, postFounderPct) => {
                     },
                     ticks: {
                         font: { size: 13, family: "'Inter', sans-serif", weight: '500' },
-                        color: 'var(--text-medium)'
+                        color: '#4A4340'
                     }
                 }
             },
@@ -2488,7 +2530,7 @@ const renderBarChart = (preFounderPct, postFounderPct) => {
                     backgroundColor: 'rgba(15, 23, 42, 0.95)',
                     padding: 12,
                     cornerRadius: 8,
-                    titleFont: { size: 13, weight: '600' },
+                    titleFont: { size: 13, weight: '500' },
                     bodyFont: { size: 12 },
                     callbacks: {
                         label: (context) => `${context.dataset.label}: ${context.raw.toFixed(1)}%`
@@ -2539,7 +2581,6 @@ const renderAIAdvisor = (preRound, postRound, pricedConversion, state) => {
 
     insights.push(`
         <div class="insight-item">
-            <div class="insight-icon">📊</div>
             <div>You are modeling a <strong>${state.roundName}</strong> round raising <strong>${investment}</strong> at a <strong>${preMoneyStr}</strong> pre-money valuation.</div>
         </div>
     `);
@@ -2572,7 +2613,6 @@ const renderAIAdvisor = (preRound, postRound, pricedConversion, state) => {
 
     insights.push(`
         <div class="insight-item">
-            <div class="insight-icon">👥</div>
             <div>Founder ownership changes from <strong>${safeFormatPercent(totalFounderPctPre)}</strong> pre-round to <strong>${safeFormatPercent(totalFounderPctPost)}</strong> post-round.</div>
         </div>
     `);
@@ -2583,8 +2623,7 @@ const renderAIAdvisor = (preRound, postRound, pricedConversion, state) => {
 
     if (totalFounderPctPre >= 0.5 && totalFounderPctPost < 0.5) {
         insights.push(`
-            <div class="insight-item" style="border-left-color: var(--danger);">
-                <div class="insight-icon">⚠️</div>
+            <div class="insight-item">
                 <div style="color: var(--danger); font-weight: 500;">Founders have dropped below 50% majority ownership in this round.</div>
             </div>
         `);
@@ -2597,7 +2636,6 @@ const renderAIAdvisor = (preRound, postRound, pricedConversion, state) => {
     if (pricedConversion.increaseInOptionsPool > 0) {
         insights.push(`
             <div class="insight-item">
-                <div class="insight-icon">💡</div>
                 <div>The model includes an option pool top-up to reach the target of <strong>${state.targetOptionsPool}%</strong>, which issued additional shares pre-round.</div>
             </div>
         `);
