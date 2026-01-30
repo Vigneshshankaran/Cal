@@ -876,7 +876,7 @@ table .percentage-input-wrapper .percentage-suffix {
    ============================================ */
 
 .ai-insights-box {
-    background: var(--white);
+    background: rgba(246, 245, 254, 1);
     border: 1px solid var(--border);
     border-radius: var(--radius-medium);
     padding: 2.5rem;
