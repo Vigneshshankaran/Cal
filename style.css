@@ -78,29 +78,7 @@
     --color-chart-5: hsl(var(--chart-5));
 }
 
-/* Dark Mode (Adjusted for Slate) */
-:root.dark {
-    --primary: #818CF8;
-    --primary-hover: #6366F1;
-    --accent: #22D3EE;
-    --accent-light: #164E63;
-
-    --text-dark: #F8FAFC;
-    --text-medium: #94A3B8;
-    --text-light: #64748B;
-
-    --border: #334155;
-    --background-light: #1E293B;
-    /* Slate 800 */
-    --page-background: #0F172A;
-    /* Slate 900 */
-    --white: #1E293B;
-}
-
-/* ============================================
-   BASE RESET
-   ============================================ */
-
+/* Base Layout & Reset */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -189,7 +167,7 @@ b {
 
 .container {
     width: 100%;
-    max-width: 1200px;
+    max-width: 1600px;
     margin: 0 auto;
     padding: 0 24px;
     flex-grow: 1;
@@ -218,7 +196,33 @@ b {
     border-radius: var(--radius-medium);
     border: 1px solid var(--border);
     box-shadow: var(--shadow-card);
-    padding: 24px;
+    padding: 1.5rem;
+}
+
+/* Results card section styling */
+.results-column > section {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    margin-bottom: 0;
+}
+
+.results-column > section:last-child {
+    margin-bottom: 0;
+}
+
+/* Ensure proper spacing in results sections */
+.results-column .card-header {
+    margin-bottom: 1.5rem;
+}
+
+.results-column .results-summary-row {
+    margin-bottom: 2rem;
+}
+
+.results-column .results-charts-row {
+    margin-bottom: 2rem;
 }
 
 .card {
@@ -271,8 +275,9 @@ b {
 
 /* Footer value with primary color */
 .footer-value-primary {
-    color: var(--primary);
+    font-size: 1.25rem;
     font-weight: 500;
+    color: var(--text-dark);
 }
 
 /* ============================================
@@ -333,34 +338,6 @@ b {
     display: block;
 }
 
-/* ============================================
-   GLOBAL FOOTER
-   ============================================ */
-
-.global-footer {
-    margin-top: auto;
-    background-color: var(--background-light);
-    border-top: 1px solid var(--border);
-    padding: 2rem;
-    font-size: 0.875rem;
-    color: var(--text-medium);
-}
-
-.footer-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.footer-links a {
-    color: var(--text-dark);
-    text-decoration: underline;
-    text-underline-offset: 4px;
-}
 
 /* ============================================
    INPUTS & FORM CONTROLS
@@ -482,8 +459,9 @@ input[type="checkbox"] {
 
 /* Primary Button */
 .btn-primary {
-    background-color: rgba(95, 70, 255, 1);
-    color: var(--white);
+    background-color: #FFFFFF;
+    color: #000000;
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 8px;
     padding: 4px 16px;
     font-weight: 500;
@@ -491,8 +469,12 @@ input[type="checkbox"] {
     line-height: 32px;
     letter-spacing: 0;
     vertical-align: middle;
-    box-shadow: 0px 1.33px 4px 0px rgba(33, 33, 38, 0.2), inset 0px 1.33px 0px 0px rgba(255, 255, 255, 0.07), 0px 0px 0px 1.33px rgba(74, 50, 229, 1);
+    box-shadow: 0px 1.33px 4px 0px rgba(33, 33, 38, 0.1);
     transition: all 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: #f7f7f7;
 }
 
 
@@ -524,21 +506,19 @@ input[type="checkbox"] {
     height: 16px;
 }
 
-/* Outline button for theme toggle */
+/* Outline button for theme toggle or reset */
 .btn-outline {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-medium);
+    background-color: #FFFFFF;
+    border: 1px solid #000000;
+    color: #000000;
     padding: 0.5rem 1rem;
-    border-radius: 9999px;
-    /* Pill shape */
+    border-radius: 8px; /* Matching primary radius */
     transition: all 0.2s;
 }
 
 .btn-outline:hover {
-    background-color: var(--background-light);
-    border-color: var(--text-medium);
-    color: var(--text-dark);
+    background-color: #f7f7f7;
+    border-color: #333333;
 }
 
 /* ============================================
@@ -548,6 +528,16 @@ input[type="checkbox"] {
 .table-container {
     width: 100%;
     overflow-x: auto;
+    margin-top: 1.5rem;
+}
+
+.table-container .subsection-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border);
 }
 
 table {
@@ -680,22 +670,6 @@ table .percentage-input-wrapper .percentage-suffix {
     height: 32px;
     font-size: 0.75rem;
     padding: 0 0.5rem;
-}
-
-/* ============================================
-   SUMMARY METRICS
-   ============================================ */
-
-.results-summary-row {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-}
-
-@media (min-width: 768px) {
-    .results-summary-row {
-        grid-template-columns: repeat(4, 1fr);
-    }
 }
 
 .metric-card {
@@ -1029,28 +1003,31 @@ table .percentage-input-wrapper .percentage-suffix {
     }
 }
 
-/* 2. Charts Row */
+/* 2. Charts Row - Unified Card */
 .results-charts-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3rem;
     margin-bottom: 3rem;
+    background: var(--white);
+    border-radius: var(--radius-medium);
+    padding: 2.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .results-charts-row {
         grid-template-columns: 1fr;
-        gap: 3rem;
+        gap: 2rem;
     }
 }
 
 .chart-column {
     display: flex;
     flex-direction: column;
-    background: var(--white);
-    border-radius: var(--radius-medium);
-    padding: 2rem;
-    border: 1px solid var(--border);
+    background: transparent;
+    padding: 0;
+    border: none;
 }
 
 .chart-title {
@@ -1068,7 +1045,7 @@ table .percentage-input-wrapper .percentage-suffix {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
+    padding: 1.5rem;
 }
 
 .donut-center-text {
@@ -1084,7 +1061,6 @@ table .percentage-input-wrapper .percentage-suffix {
 /* Bar Chart Container */
 .bar-chart-container {
     width: 100%;
-    height: 280px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1149,16 +1125,24 @@ table .percentage-input-wrapper .percentage-suffix {
     border: 1px solid rgba(233, 234, 235, 1);
     border-radius: 8px;
     overflow: hidden;
+    background-color: var(--white);
 }
 
 .results-table th {
-    padding: 0.75rem 1rem;
+    padding: 1rem 1.25rem;
     border-bottom: 1px solid rgba(233, 234, 235, 1);
     border-right: 1px solid rgba(233, 234, 235, 1);
     font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--text-light);
-    background: rgba(250, 250, 250, 1);
+    font-weight: 600;
+    color: var(--text-medium);
+    background: rgba(249, 250, 251, 1);
+    text-align: left;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+}
+
+.results-table th.text-right {
+    text-align: right;
 }
 
 .results-table th:last-child {
@@ -1166,10 +1150,17 @@ table .percentage-input-wrapper .percentage-suffix {
 }
 
 .results-table td {
-    padding: 0.75rem 1rem;
+    padding: 1rem 1.25rem;
     border-bottom: 1px solid rgba(233, 234, 235, 1);
     border-right: 1px solid rgba(233, 234, 235, 1);
     font-size: 0.875rem;
+    color: var(--text-dark);
+    vertical-align: middle;
+    line-height: 1.5;
+}
+
+.results-table td.text-right {
+    text-align: right;
 }
 
 .results-table td:last-child {
@@ -1178,6 +1169,27 @@ table .percentage-input-wrapper .percentage-suffix {
 
 .results-table tr:last-child td {
     border-bottom: none;
+}
+
+.results-table tbody tr:hover {
+    background-color: rgba(249, 250, 251, 0.5);
+    transition: background-color 0.15s ease;
+}
+
+/* Better alignment for numeric columns */
+.results-table .col-cat {
+    width: 25%;
+    min-width: 120px;
+}
+
+.results-table .text-right {
+    width: 15%;
+    min-width: 100px;
+}
+
+.results-table .col-pps {
+    width: 12%;
+    min-width: 90px;
 }
 
 .pre-value {
@@ -1334,6 +1346,11 @@ table .percentage-input-wrapper .percentage-suffix {
 
 .max-w-4xl {
     max-width: 56rem;
+}
+
+.mx-auto {
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .mx-auto {
@@ -1541,9 +1558,19 @@ table .percentage-input-wrapper .percentage-suffix {
     }
 
     .calculator-shell section {
-        padding: 16px;
+        padding: 1rem;
     }
-
+    
+    .results-column {
+        padding: 1rem;
+    }
+    
+    .results-table th,
+    .results-table td {
+        padding: 0.75rem 0.875rem;
+        font-size: 0.8125rem;
+    }
+    
     .card-header {
         flex-direction: column;
         align-items: flex-start;
@@ -1572,17 +1599,18 @@ table .percentage-input-wrapper .percentage-suffix {
 /* --- Tags --- */
 
 .tag {
-    font-family: inter;
+    font-family: inherit;
     display: inline-flex;
     align-items: center;
-    padding: 0.125rem 0.375rem;
-    border-radius: 9999px;
+    padding: 0.125rem 0.5rem;
+    border-radius: 4px; /* More standard tag shape */
     font-size: 0.65rem;
-    font-weight: 500;
-    line-height: 1;
-    margin-left: 0.5rem;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-left: 0.65rem;
     letter-spacing: 0.02em;
     vertical-align: middle;
+    text-transform: uppercase;
 }
 
 .tag-pre {
@@ -1593,16 +1621,9 @@ table .percentage-input-wrapper .percentage-suffix {
 }
 
 .tag-post {
-    background-color: rgba(248, 248, 255, 1);
-    color: rgba(99, 91, 255, 1);
-    /* Blue-600 */
-    border: 0.56px solid rgba(201, 198, 255, 1);
-    padding-top: 2px;
-    padding-right: 7px;
-    padding-bottom: 2px;
-    padding-left: 7px;
-
-    border-radius: 5992.3px;
+    background-color: #ffffff;
+    color: #000000;
+    border: 0.75px solid #000000;
 }
 
 .dark .tag-post {
@@ -1661,4 +1682,201 @@ table .percentage-input-wrapper .percentage-suffix {
 .dark .mfn-valuation-tag {
     color: #a78bfa;
     background: rgba(139, 92, 246, 0.15);
+}
+/* ============================================
+   SPLIT LAYOUT & NON-TABLE INPUTS
+   ============================================ */
+
+.split-layout-wrapper {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    margin-top: 2rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.calculator-column {
+    width: 655.2px;
+    max-width: 100%;
+    min-width: 0;
+    flex-shrink: 0;
+}
+
+.results-column {
+    width: 784px;
+    max-width: 100%;
+    position: sticky;
+    top: 2rem;
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    /* Ensure the entire Results column reads as a white panel (not the page gray) */
+    background-color: var(--white);
+    padding: 1.5rem;
+    border-radius: var(--radius-medium);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-card);
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.results-column::-webkit-scrollbar {
+    width: 8px;
+}
+
+.results-column::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.results-column::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 10px;
+}
+
+.results-column::-webkit-scrollbar-thumb:hover {
+    background-color: var(--text-light);
+}
+
+.input-table-replacement {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.input-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-bottom: 2px solid var(--border);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-light);
+    text-transform: uppercase;
+}
+
+.input-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.input-row:last-child {
+    border-bottom: none;
+}
+
+.col-name { flex: 2; min-width: 120px; }
+.col-cat { flex: 1.5; min-width: 100px; }
+.col-shares { flex: 1.2; min-width: 80px; }
+.col-inv { flex: 1.2; min-width: 80px; }
+.col-cap { flex: 1.2; min-width: 80px; }
+.col-disc { flex: 0.8; min-width: 60px; }
+.col-type { flex: 1; min-width: 90px; }
+.col-pct { flex: 1; min-width: 70px; text-align: right; }
+.col-actions { width: 40px; text-align: right; flex-shrink: 0; }
+
+/* Medium breakpoint: let inputs wrap into a two-column grid-style layout */
+@media (max-width: 1024px) {
+    .input-row {
+        flex-wrap: wrap;
+    }
+
+    .input-row .col-name,
+    .input-row .col-cat,
+    .input-row .col-shares,
+    .input-row .col-inv,
+    .input-row .col-cap,
+    .input-row .col-disc,
+    .input-row .col-type {
+        flex: 1 1 calc(50% - 0.75rem);
+        min-width: 0;
+    }
+
+    .input-row .col-actions {
+        width: auto;
+        margin-left: auto;
+    }
+}
+
+@media (max-width: 1500px) {
+    .calculator-column {
+        width: 100%;
+        max-width: 655.2px;
+    }
+    .results-column {
+        width: 100%;
+        max-width: 784px;
+    }
+}
+
+@media (max-width: 1100px) {
+    .split-layout-wrapper {
+        flex-direction: column;
+    }
+    .results-column {
+        position: static;
+        max-height: none;
+        overflow: visible;
+        width: 100%;
+        max-width: 100%;
+        padding: 1.5rem;
+    }
+    .calculator-column {
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
+/* ============================================
+   RESPONSIVE INPUT ROWS (DIV-BASED TABLES)
+   ============================================ */
+
+@media (max-width: 640px) {
+    /* Headers become cramped on mobile; show per-field labels instead */
+    .input-header {
+        display: none;
+    }
+
+    .input-row {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding: 1rem 0;
+    }
+
+    .input-row > [data-label] {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    .input-row > [data-label]::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--text-light);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.35rem;
+    }
+
+    .input-row .col-actions {
+        flex: 0 0 auto;
+        width: auto;
+        margin-left: auto;
+    }
+
+    .input-row .percentage-input-wrapper {
+        width: 100%;
+    }
+
+    .input-row .percentage-input-wrapper .compact-input {
+        width: 100%;
+        flex: 1;
+    }
 }

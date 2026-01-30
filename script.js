@@ -1,226 +1,116 @@
-/**
- * ============================================
- * SAFE & Priced Round Cap Table Calculator
- * ============================================
- * 
- * This calculator models equity ownership through SAFE conversions
- * and priced funding rounds. It handles:
- * - Common stock (founders, employees, option pools)
- * - SAFE notes (post-money and discount SAFEs)
- * - Priced equity rounds (Series A, B, etc.)
- * - Option pool management and dilution tracking
- * 
- * Key Formulas:
- * - Post-money Valuation = Pre-money + New Investment
- * - Price Per Share (PPS) = Pre-money / Pre-round Shares
- * - Ownership % = (Shareholder Shares / Total Shares) × 100
- * - SAFE Shares = Investment / min(Cap PPS, Discount PPS)
- */
 
-// ============================================
-// TYPE DEFINITIONS & CONSTANTS
-// ============================================
 
-/**
- * Enum for cap table row types
- * Used to categorize different equity instruments
- */
 const CapTableRowType = {
-    Common: "common",           // Common stock (founders, employees)
-    Safe: "safe",               // SAFE notes
-    Series: "series",           // Priced round investors
-    Total: "total",             // Summary row
-    RefreshedOptions: "refreshedOptions", // Option pool adjustments
+    Common: "common",           
+    Safe: "safe",               
+    Series: "series",           
+    Total: "total",             
+    RefreshedOptions: "refreshedOptions", 
 };
 
-/**
- * Enum for common stock subtypes
- */
 const CommonRowType = {
-    Shareholder: "shareholder", // Individual shareholders
-    UnusedOptions: "unusedOptions", // Unallocated option pool
+    Shareholder: "shareholder", 
+    UnusedOptions: "unusedOptions", 
 };
 
-/**
- * Default rounding strategy for calculations
- * Ensures consistent precision across all computations
- */
 const DEFAULT_ROUNDING_STRATEGY = {
-    roundShares: true,    // Round share counts to whole numbers
-    roundPPSPlaces: 8,    // Price per share precision (8 decimal places)
+    roundShares: true,    
+    roundPPSPlaces: 8,    
 };
 
-// ============================================
-// UTILITY FUNCTIONS
-// ============================================
-
-/**
- * Converts a string or number to a numeric value
- * Strips out currency symbols, commas, and other non-numeric characters
- * @param {string|number} value - The value to convert
- * @returns {number} Parsed numeric value
- */
 const stringToNumber = (value) => {
-    // If already a number, return as-is
+    
     if (typeof value === "number") return value;
 
-    // Remove all non-numeric characters except minus sign and decimal point
     const cleanedValue = String(value).replace(/[^-\d.]/g, "");
 
-    // Parse as float or integer depending on presence of decimal point
     return cleanedValue.includes(".")
         ? parseFloat(cleanedValue)
         : parseInt(cleanedValue, 10) || 0;
 };
 
-/**
- * Formats a number as USD currency with commas
- * @param {number|string} value - The value to format
- * @returns {string} Formatted currency string (e.g., "$1,234,567")
- */
 const formatUSDWithCommas = (value) => {
     const num = stringToNumber(value);
     return num.toLocaleString("en-US", {
         style: "currency",
         currency: "USD",
-        maximumFractionDigits: 0, // No cents
+        maximumFractionDigits: 0, 
     });
 };
 
-/**
- * Formats a number with thousand separators
- * @param {number|string} value - The value to format
- * @returns {string} Formatted number string (e.g., "1,234,567")
- */
 const formatNumberWithCommas = (value) => {
     return stringToNumber(value).toLocaleString("en-US", { style: "decimal" });
 };
 
-/**
- * Safely formats a decimal value as a percentage
- * Handles edge cases like null, undefined, NaN, and infinity
- * @param {number} value - Decimal value (e.g., 0.25 for 25%)
- * @param {number} decimals - Number of decimal places (default: 2)
- * @returns {string} Formatted percentage or em dash if invalid
- */
 const safeFormatPercent = (value, decimals = 2) => {
-    // Return em dash for invalid values
+    
     if (value === null || value === undefined || isNaN(value) || !isFinite(value))
         return "—";
 
-    // Convert decimal to percentage (0.25 → 25.00%)
     return `${(value * 100).toFixed(decimals)}%`;
 };
 
-
-
-/**
- * Safely formats a number with commas
- * @param {number} value - The value to format
- * @returns {string} Formatted number or em dash if invalid
- */
 const safeFormatNumber = (value) => {
     if (value === null || value === undefined || isNaN(value) || !isFinite(value))
         return "—";
     return formatNumberWithCommas(value);
 };
 
-/**
- * Safely formats a value as USD currency
- * @param {number} value - The value to format
- * @returns {string} Formatted currency or em dash if invalid
- */
 const safeFormatCurrency = (value) => {
     if (value === null || value === undefined || isNaN(value) || !isFinite(value))
         return "—";
     return formatUSDWithCommas(value);
 };
 
-/**
- * Formats price per share with higher precision (3 decimal places)
- * Used for share prices which can be fractional cents
- * @param {number|string} value - The PPS value to format
- * @returns {string} Formatted PPS (e.g., "$1.234")
- */
 const formatPPSWithCommas = (value) => {
     const num = stringToNumber(value);
     return num.toLocaleString("en-US", {
         style: "currency",
         currency: "USD",
-        maximumFractionDigits: 3,  // Allow up to 3 decimal places
-        minimumFractionDigits: 2,  // Always show at least 2 decimals
+        maximumFractionDigits: 3,  
+        minimumFractionDigits: 2,  
     });
 };
 
-/**
- * Safely formats a value as USD (alias for safeFormatCurrency)
- * @param {number} value - The value to format
- * @returns {string} Formatted currency or em dash if invalid
- */
 const safeFormatUSD = (value) => {
     if (value === null || value === undefined || isNaN(value) || !isFinite(value))
         return "—";
     return formatUSDWithCommas(value);
 };
 
-/**
- * Safely formats price per share
- * @param {number} value - The PPS value to format
- * @returns {string} Formatted PPS or em dash if invalid
- */
 const safeFormatPPS = (value) => {
     if (value === null || value === undefined || isNaN(value) || !isFinite(value))
         return "—";
     return formatPPSWithCommas(value);
 };
 
-
-
-/**
- * Formats numeric input fields in real-time as user types
- * Adds thousand separators and maintains cursor position
- * @param {HTMLInputElement} input - The input element to format
- * @param {boolean} isCurrency - Whether to format as currency (default: false)
- */
 const formatInputLive = (input, isCurrency = false) => {
-    // Extract numeric value from input
+    
     const rawValue = input.value.replace(/[^\d.-]/g, "");
     const numValue = parseFloat(rawValue) || 0;
 
-    // Save cursor position before formatting
     const cursorPos = input.selectionStart;
     const oldLength = input.value.length;
 
-    // Apply appropriate formatting
     if (isCurrency) {
         input.value = formatUSDWithCommas(numValue);
     } else {
         input.value = formatNumberWithCommas(numValue);
     }
 
-    // Restore cursor position, accounting for added/removed characters
     const newLength = input.value.length;
     const diff = newLength - oldLength;
     const newPos = Math.max(0, cursorPos + diff);
     input.setSelectionRange(newPos, newPos);
 };
 
-// Expose formatInputLive globally for use in HTML event handlers
 window.formatInputLive = formatInputLive;
 
-/**
- * Rounds share counts according to the specified strategy
- * @param {number} num - The number of shares to round
- * @param {object} strategy - Rounding strategy (default: DEFAULT_ROUNDING_STRATEGY)
- * @returns {number} Rounded share count
- */
 const roundShares = (num, strategy = DEFAULT_ROUNDING_STRATEGY) => {
-    if (strategy.roundDownShares) return Math.floor(num);  // Always round down
-    if (strategy.roundShares) return Math.round(num);      // Round to nearest
-    return num;  // No rounding
+    if (strategy.roundDownShares) return Math.floor(num);  
+    if (strategy.roundShares) return Math.round(num);      
+    return num;  
 };
-
-
 
 const roundPPSToPlaces = (num, places) => {
 
@@ -231,12 +121,6 @@ const roundPPSToPlaces = (num, places) => {
     return Math.ceil(num * factor) / factor;
 
 };
-
-
-
-// --- SAFE Calculation Logic ---
-
-
 
 const isMFN = (safe) => {
 
@@ -251,8 +135,6 @@ const isMFN = (safe) => {
     );
 
 };
-
-
 
 const getMFNCapAfter = (rows, idx) => {
 
@@ -274,21 +156,15 @@ const getMFNCapAfter = (rows, idx) => {
 
 };
 
-
-
 const getCapForSafe = (idx, safes) => {
 
     const safe = safes[idx];
 
     if (!isMFN(safe)) return safe.cap;
 
-
-
     const inheritedCap = getMFNCapAfter(safes, idx);
 
     const ownCap = safe.cap || 0;
-
-
 
     if (ownCap > 0 && inheritedCap > 0) return Math.min(ownCap, inheritedCap);
 
@@ -299,8 +175,6 @@ const getCapForSafe = (idx, safes) => {
     return 0;
 
 };
-
-
 
 const populateSafeCaps = (safeNotes) => {
 
@@ -318,8 +192,6 @@ const populateSafeCaps = (safeNotes) => {
 
 };
 
-
-
 const safeConvert = (safe, preShares, postShares, pps) => {
 
     if (safe.cap === 0) return (1 - (safe.discount || 0)) * pps;
@@ -333,8 +205,6 @@ const safeConvert = (safe, preShares, postShares, pps) => {
     return Math.min(discountPPS, capPPS);
 
 };
-
-
 
 const sumSafeConvertedShares = (
 
@@ -368,12 +238,6 @@ const sumSafeConvertedShares = (
 
 };
 
-
-
-// --- Error Checking ---
-
-
-
 const checkSafeNotesForErrors = (safeNotes) => {
 
     let ownershipError = undefined;
@@ -399,12 +263,6 @@ const checkSafeNotesForErrors = (safeNotes) => {
     return ownershipError;
 
 };
-
-
-
-// --- Conversion Solver ---
-
-
 
 const calculatePreAndPostMoneyShares = (
 
@@ -470,8 +328,6 @@ const calculatePreAndPostMoneyShares = (
 
     const postMoneyShares = totalShares - seriesShares - increaseInOptionsPool;
 
-
-
     return {
 
         preMoneyShares,
@@ -493,8 +349,6 @@ const calculatePreAndPostMoneyShares = (
     };
 
 };
-
-
 
 const attemptFit = (
 
@@ -551,8 +405,6 @@ const attemptFit = (
     return results.seriesShares + commonShares + results.optionsPool + safeShares;
 
 };
-
-
 
 const fitConversion = (
 
@@ -650,8 +502,6 @@ const fitConversion = (
 
     const totalSeriesInvestment = seriesInvestments.reduce((a, b) => a + b, 0);
 
-
-
     return {
 
         ...res,
@@ -680,12 +530,6 @@ const fitConversion = (
 
 };
 
-
-
-// --- Cap Table Builders ---
-
-
-
 const buildTBDPreRoundCapTable = (safeNotes, common) => {
 
     const totalInvestment = safeNotes.reduce(
@@ -699,8 +543,6 @@ const buildTBDPreRoundCapTable = (safeNotes, common) => {
     const totalShares = common.reduce((acc, c) => acc + c.shares, 0);
 
     const reason = "Unable to model Pre-Round cap table with uncapped SAFE's";
-
-
 
     return {
 
@@ -742,8 +584,6 @@ const buildTBDPreRoundCapTable = (safeNotes, common) => {
 
 };
 
-
-
 const buildErrorPreRoundCapTable = (safeNotes, common) => {
 
     const totalInvestment = safeNotes.reduce(
@@ -755,8 +595,6 @@ const buildErrorPreRoundCapTable = (safeNotes, common) => {
     );
 
     const totalShares = common.reduce((acc, c) => acc + c.shares, 0);
-
-
 
     return {
 
@@ -800,14 +638,30 @@ const buildErrorPreRoundCapTable = (safeNotes, common) => {
 
 };
 
+const buildStrictlyPreRoundCapTable = (rowData) => {
+    const common = rowData.filter((r) => r.type === CapTableRowType.Common);
+    const totalShares = common.reduce((acc, r) => acc + r.shares, 0);
 
+    return {
+        common: common.map((c) => ({
+            ...c,
+            ownershipPct: totalShares > 0 ? c.shares / totalShares : 0,
+        })),
+        safes: rowData
+            .filter((r) => r.type === CapTableRowType.Safe)
+            .map((s) => ({ ...s, shares: 0, ownershipPct: 0 })),
+        total: {
+            shares: totalShares,
+            investment: 0,
+            ownershipPct: 1,
+            type: CapTableRowType.Total,
+        },
+    };
+};
 
 const buildEstimatedPreRoundCapTable = (
-
     rowData,
-
     roundingStrategy = DEFAULT_ROUNDING_STRATEGY
-
 ) => {
 
     const common = rowData.filter((r) => r.type === CapTableRowType.Common);
@@ -820,21 +674,15 @@ const buildEstimatedPreRoundCapTable = (
 
     );
 
-
-
     if (safeNotes.some((s) => s.cap !== 0 && s.cap <= s.investment)) {
 
         return buildErrorPreRoundCapTable(safeNotes, common);
 
     }
 
-
-
     const maxCap = safeNotes.reduce((max, s) => Math.max(max, s.cap), 0);
 
     if (maxCap === 0) return buildTBDPreRoundCapTable(safeNotes, common);
-
-
 
     let safeRows = safeNotes.map((safe) => {
 
@@ -868,8 +716,6 @@ const buildEstimatedPreRoundCapTable = (
 
     });
 
-
-
     const preMoneySafeShares = safeRows.reduce(
 
         (acc, s) => acc + (s.shares || 0),
@@ -894,8 +740,6 @@ const buildEstimatedPreRoundCapTable = (
 
     );
 
-
-
     safeRows = safeRows.map((s) => {
 
         if (s.shares) return { ...s, ownershipPct: s.shares / postCap };
@@ -910,13 +754,9 @@ const buildEstimatedPreRoundCapTable = (
 
     });
 
-
-
     const finalTotalShares =
 
         preMoneyShares + safeRows.reduce((acc, s) => acc + (s.shares || 0), 0);
-
-
 
     return {
 
@@ -940,8 +780,6 @@ const buildEstimatedPreRoundCapTable = (
 
 };
 
-
-
 const buildPricedRoundCapTable = (pricedConversion, rowData) => {
 
     const common = rowData.filter(
@@ -961,8 +799,6 @@ const buildPricedRoundCapTable = (pricedConversion, rowData) => {
         series.reduce((a, s) => a + s.investment, 0) +
 
         safes.reduce((a, s) => a + s.investment, 0);
-
-
 
     return {
 
@@ -1040,13 +876,7 @@ const buildPricedRoundCapTable = (pricedConversion, rowData) => {
 
 };
 
-
-
-// --- Application State ---
-
-
-
-const state = {
+const INITIAL_STATE = {
     name: "Standalone Worksheet",
     roundName: "Series A",
     rowData: [
@@ -1084,38 +914,65 @@ const state = {
             name: "SAFE 1",
             investment: 500000,
             cap: 1000000,
-            discount: 0.2, // 20%
+            discount: 0.2, 
             conversionType: "post",
         },
         { id: "4", type: "series", name: "Investor 1", investment: 2000000 },
     ],
     preMoney: 10000000,
     targetOptionsPool: 10,
-    pricedRounds: 1, // Always show priced round by default
-    darkMode: false,
+    pricedRounds: 1, 
 };
 
+let state = JSON.parse(JSON.stringify(INITIAL_STATE));
 
+window.resetCalculator = () => {
+    state = JSON.parse(JSON.stringify(INITIAL_STATE));
+    clearGlobalErrors();
+    updateUI();
+};
+
+const showGlobalError = (message) => {
+    const container = document.getElementById("global-error-container");
+    if (container) {
+        container.innerHTML = `
+            <div id="results-error-alert" style="background-color: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); padding: 1rem; border-radius: var(--radius-small); font-size: 0.9375rem; display: flex; align-items: center; gap: 0.75rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <span><strong>Error:</strong> ${message}</span>
+            </div>
+        `;
+        
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+};
+
+const clearGlobalErrors = () => {
+    const container = document.getElementById("global-error-container");
+    if (container) container.innerHTML = "";
+};
 
 const TRASH_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>`;
 
-
-
-// --- Core UI Logic ---
-
-
-
 const updateUI = () => {
-
     try {
-
         console.log("updateUI called", state);
+        clearGlobalErrors();
+
+        if (state.preMoney <= 0) {
+            showGlobalError("Pre-money valuation is required and must be greater than 0 to calculate.");
+            
+            document.getElementById("round-pps-val").textContent = "—";
+            document.getElementById("post-money-val").textContent = "—";
+            document.getElementById("total-post-shares-val").textContent = "—";
+            document.getElementById("founder-ownership-val").textContent = "—";
+            document.getElementById("post-round-table").innerHTML = "";
+            document.getElementById("pie-chart-container").innerHTML = "";
+            document.getElementById("bar-chart-container").innerHTML = "";
+            document.getElementById("ai-insights-container").innerHTML = "";
+            return;
+        }
 
         const preRound = buildEstimatedPreRoundCapTable(state.rowData);
-
-
-
-        // Refresh inputs values if they might have changed from state
 
         const preMoneyInput = document.getElementById("pre-money-input");
 
@@ -1133,23 +990,13 @@ const updateUI = () => {
 
         }
 
-
-
-        // Initial renders from rowData
-
         renderSAFEs();
 
         renderSeriesInvestors();
 
-
-
-        // Update first card footer & current unallocated ESOP val
-
         const esopRow = state.rowData.find((r) => r.id === "UnusedOptionsPool");
 
         const unusedOptionsValue = esopRow ? esopRow.shares : 0;
-
-
 
         const S0 = state.rowData
 
@@ -1161,23 +1008,13 @@ const updateUI = () => {
 
         if (totalSharesVal) totalSharesVal.textContent = formatNumberWithCommas(S0);
 
-
-
         const currentEsopVal = document.getElementById("current-esop-val");
 
         if (currentEsopVal)
 
             currentEsopVal.textContent = formatNumberWithCommas(unusedOptionsValue);
 
-
-
         renderShareholders(S0);
-
-
-
-        // ERROR CHECK: Validate SAFEs before attempting detailed conversion
-
-        // MFN FIX: We must populate/resolve caps for MFN SAFEs first!
 
         const rawSafes = state.rowData.filter(
 
@@ -1187,63 +1024,10 @@ const updateUI = () => {
 
         const safes = populateSafeCaps(rawSafes);
 
-
-
         const error = checkSafeNotesForErrors(safes);
 
-
-
-        // Get Results Container for error display
-
-        const resultsHeader = document.querySelector("#results-card .card-header");
-
-        // Remove any existing error alert
-
-        const existingError = document.getElementById("results-error-alert");
-
-        if (existingError) existingError.remove();
-
-
-
         if (error) {
-
-            // Display Error
-
-            if (resultsHeader) {
-
-                const errorDiv = document.createElement("div");
-
-                errorDiv.id = "results-error-alert";
-
-                errorDiv.style.backgroundColor = "rgba(220, 38, 38, 0.1)"; // var(--danger) with opacity
-
-                errorDiv.style.color = "var(--danger)";
-
-                errorDiv.style.border = "1px solid var(--danger)";
-
-                errorDiv.style.padding = "0.75rem";
-
-                errorDiv.style.borderRadius = "var(--radius-md)";
-
-                errorDiv.style.marginTop = "1rem";
-
-                errorDiv.style.fontSize = "0.875rem";
-
-                errorDiv.innerHTML = `<strong>Error:</strong> ${error.reason}`;
-
-                resultsHeader.parentNode.insertBefore(
-
-                    errorDiv,
-
-                    resultsHeader.nextSibling
-
-                );
-
-            }
-
-
-
-            // Clear Charts & Tables to avoid misleading data
+            showGlobalError(error.reason);
 
             document.getElementById("post-round-table").innerHTML = "";
 
@@ -1253,10 +1037,6 @@ const updateUI = () => {
 
             document.getElementById("ai-insights-container").innerHTML = "";
 
-
-
-            // Reset Summary Metrics
-
             document.getElementById("round-pps-val").textContent = "—";
 
             document.getElementById("post-money-val").textContent = "—";
@@ -1265,15 +1045,9 @@ const updateUI = () => {
 
             document.getElementById("founder-ownership-val").textContent = "—";
 
-
-
-            return; // STOP execution
+            return; 
 
         }
-
-
-
-        // Calculate priced round (Only if no errors)
 
         const commonShares = state.rowData
 
@@ -1307,19 +1081,7 @@ const updateUI = () => {
 
         );
 
-
-
         console.log("Priced Conversion Result:", pricedConversion);
-
-
-
-        // Populate Priced Round read-only fields
-
-        // Note: total-series-investment is calculated but not present in index.html,
-
-        // strictly following UI-only rendering fix by not adding new elements.
-
-
 
         const roundPpsEl = document.getElementById("round-pps-val");
 
@@ -1327,17 +1089,11 @@ const updateUI = () => {
 
             roundPpsEl.textContent = safeFormatPPS(pricedConversion.pps);
 
-
-
-        // Post-money Valuation = Total Post-Round Shares * PPS
-
         const postMoneyVal = pricedConversion.totalShares * pricedConversion.pps;
 
         const postMoneyEl = document.getElementById("post-money-val");
 
         if (postMoneyEl) postMoneyEl.textContent = safeFormatCurrency(postMoneyVal);
-
-
 
         const additionalOptionsEl = document.getElementById(
 
@@ -1353,10 +1109,6 @@ const updateUI = () => {
 
             );
 
-
-
-        // New Investors Shares (Series Investors)
-
         const newInvestorsSharesEl = document.getElementById(
 
             "new-investors-shares-val"
@@ -1371,25 +1123,13 @@ const updateUI = () => {
 
             );
 
-
-
-        // Build Post Round data
-
         const postRound = buildPricedRoundCapTable(pricedConversion, state.rowData);
-
-
-
-        // Populate Metrics
 
         const totalPostSharesEl = document.getElementById("total-post-shares-val");
 
         if (totalPostSharesEl)
 
             totalPostSharesEl.textContent = safeFormatNumber(postRound.total.shares);
-
-
-
-        // Dynamic Founder metrics
 
         const foundersPost = postRound.common.filter(
 
@@ -1405,49 +1145,15 @@ const updateUI = () => {
 
         );
 
+        const commonSharesTotal = state.rowData
+            .filter((r) => r.type === CapTableRowType.Common)
+            .reduce((a, r) => a + r.shares, 0);
 
+        const founderSharesPre = state.rowData
+            .filter((r) => r.type === CapTableRowType.Common && r.category === "Founder")
+            .reduce((a, r) => a + r.shares, 0);
 
-        // Calculate Pre-round (Post-SAFE) Founder %
-
-        // If priced round is valid, use it to resolve uncapped SAFEs. Otherwise fallback to estimated pre-round.
-
-        let totalFounderPctPre = 0;
-
-        if (pricedConversion && pricedConversion.totalShares > 0) {
-
-            // Re-calculate pre-money shares from priced conversion result
-
-            // PreMoneyShares = TotalShares - SeriesShares - OptionPoolIncrease
-
-            // Note: pricedConversion.newSharesIssued includes OptionPoolIncrease
-
-            const preMoneyShares =
-
-                pricedConversion.totalShares -
-
-                pricedConversion.seriesShares -
-
-                pricedConversion.increaseInOptionsPool;
-
-            const founderShares = foundersPost.reduce((a, f) => a + f.shares, 0); // Founder shares don't change
-
-            totalFounderPctPre =
-
-                preMoneyShares > 0 ? founderShares / preMoneyShares : 0;
-
-        } else {
-
-            const foundersPre = preRound.common.filter(
-
-                (c) => c.category === "Founder"
-
-            );
-
-            totalFounderPctPre = foundersPre.reduce((a, f) => a + f.ownershipPct, 0);
-
-        }
-
-
+        const totalFounderPctPre = commonSharesTotal > 0 ? founderSharesPre / commonSharesTotal : 0;
 
         const founderOwnershipEl = document.getElementById("founder-ownership-val");
 
@@ -1456,8 +1162,6 @@ const updateUI = () => {
             founderOwnershipEl.textContent = safeFormatPercent(totalFounderPctPost);
 
         }
-
-
 
         const dilution =
 
@@ -1471,8 +1175,6 @@ const updateUI = () => {
 
         }
 
-
-
         const dilutionNoteEl = document.getElementById("dilution-summary-note");
 
         if (dilutionNoteEl) {
@@ -1483,23 +1185,13 @@ const updateUI = () => {
 
         }
 
+        const strictlyPreRound = buildStrictlyPreRoundCapTable(state.rowData);
 
-
-        // Render Breakdown Table
-
-        renderBreakdownTable(preRound, postRound, pricedConversion.pps);
-
-
-
-        // Render Charts
+        renderBreakdownTable(strictlyPreRound, postRound, pricedConversion.pps);
 
         renderPieChart(postRound);
 
         renderBarChart(totalFounderPctPre, totalFounderPctPost);
-
-
-
-        // Render AI Advisor
 
         renderAIAdvisor(preRound, postRound, pricedConversion, state);
 
@@ -1511,15 +1203,11 @@ const updateUI = () => {
 
 };
 
-
-
 const renderShareholders = (totalSharesS0) => {
 
     const container = document.getElementById("shareholders-body");
 
     container.innerHTML = "";
-
-
 
     const categories = [
 
@@ -1535,273 +1223,115 @@ const renderShareholders = (totalSharesS0) => {
 
     ];
 
-
-
-    // Render from rowData
-
     state.rowData
-
         .filter((r) => r.type === CapTableRowType.Common)
-
         .forEach((row) => {
-
             const ownershipPct = totalSharesS0 > 0 ? row.shares / totalSharesS0 : NaN;
-
             const pctText = safeFormatPercent(ownershipPct);
 
+            const rowDiv = document.createElement("div");
+            rowDiv.className = "input-row";
+            rowDiv.innerHTML = `
+                <div class="col-name" data-label="Shareholder">
+                    <input class="input" value="${row.name}" onchange="updateRow('${row.id}', 'name', this.value)">
+                </div>
+                <div class="col-cat" data-label="Category">
+                    <select class="input" onchange="updateRow('${row.id}', 'category', this.value)">
+                        ${categories
+                            .map(
+                                (cat) =>
+                                    `<option value="${cat}" ${row.category === cat ? "selected" : ""}>${cat}</option>`
+                            )
+                            .join("")}
+                    </select>
+                </div>
+                <div class="col-shares" data-label="Shares">
+                    <input class="input" type="text" value="${formatNumberWithCommas(row.shares)}" oninput="formatInputLive(this, false)" onchange="updateRow('${row.id}', 'shares', this.value)">
+                </div>
+                <div class="col-pct text-right" data-label="% Ownership">
+                    ${pctText}
+                </div>
+                <div class="col-actions">
+                    <button class="btn-trash" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>
+                </div>
+            `;
 
-
-            const tr = document.createElement("tr");
-
-            tr.innerHTML = `
-
-      <td><input class="input" value="${row.name}" onchange="updateRow('${row.id
-
-                }', 'name', this.value)"></td>
-
-      <td>
-
-        <select class="input" onchange="updateRow('${row.id
-
-                }', 'category', this.value)">
-
-          ${categories
-
-                    .map(
-
-                        (cat) =>
-
-                            `<option value="${cat}" ${row.category === cat ? "selected" : ""
-
-                            }>${cat}</option>`
-
-                    )
-
-                    .join("")}
-
-        </select>
-
-      </td>
-
-      <td><input class="input" type="text" value="${formatNumberWithCommas(
-
-                        row.shares
-
-                    )}" oninput="formatInputLive(this, false)" onchange="updateRow('${row.id
-
-                }', 'shares', this.value)"></td>
-
-      <td class="text-right">${pctText}</td>
-
-      <td class="text-right">
-
-        <button class="btn-trash" onclick="deleteRow('${row.id
-
-                }')">${TRASH_ICON}</button>
-
-      </td>
-
-    `;
-
-            container.appendChild(tr);
-
+            container.appendChild(rowDiv);
         });
 
 };
-
-
 
 const renderSAFEs = () => {
-
     const container = document.getElementById("safes-body");
-
     container.innerHTML = "";
-
-
-
-    // MFN FIX: Resolve caps for display
-
-    const rawSafes = state.rowData.filter((r) => r.type === "safe");
-
-    const resolvedSafes = populateSafeCaps(rawSafes);
-
-
-
-    rawSafes.forEach((row, idx) => {
-
-        const tr = document.createElement("tr");
-
-
-
-        // MFN Tag Logic
-
-        let mfnTag = "";
-
-        if (isMFN(row)) {
-
-            // Find resolved cap from the pre-calculated list
-
-            const resolvedSafe = resolvedSafes.find((s) => s.id === row.id);
-
-            const appliedVal = safeFormatUSD(
-
-                resolvedSafe ? resolvedSafe.cap : row.cap
-
-            );
-
-            mfnTag = `<div class="mfn-valuation-tag">MFN · Applied valuation: ${appliedVal}</div>`;
-
-        }
-
-
-
-        tr.innerHTML = `
-
-      <td>
-
-        <input class="input" value="${row.name}" onchange="updateRow('${row.id
-
-            }', 'name', this.value)">
-
-        ${mfnTag}
-
-      </td>
-
-      <td><input class="input" type="text" value="${formatUSDWithCommas(
-
-                row.investment
-
-            )}" oninput="formatInputLive(this, true)" onchange="updateRow('${row.id
-
-            }', 'investment', this.value)"></td>
-
-      <td><input class="input" type="text" value="${formatUSDWithCommas(
-
-                row.cap
-
-            )}" oninput="formatInputLive(this, true)" onchange="updateRow('${row.id
-
-            }', 'cap', this.value)"></td>
-
-      <td>
-
-        <div class="percentage-input-wrapper">
-
-          <input class="input compact-input" type="text" value="${(
-
-                row.discount * 100
-
-            ).toFixed(
-
-                0
-
-            )}" oninput="formatInputLive(this, false)" onchange="updateRow('${row.id
-
-            }', 'discount', this.value)">
-
-          <span class="percentage-suffix">%</span>
-
-        </div>
-
-      </td>
-
-      <td>
-
-        <select class="input" onchange="updateRow('${row.id
-
-            }', 'conversionType', this.value)">
-
-          <option value="post" ${row.conversionType === "post" ? "selected" : ""
-
-            }>Post-money</option>
-
-          <option value="pre" ${row.conversionType === "pre" ? "selected" : ""
-
-            }>Pre-money</option>
-
-          <option value="mfn" ${row.conversionType === "mfn" ? "selected" : ""
-
-            }>MFN</option>
-
-        </select>
-
-      </td>
-
-      <td class="text-right">
-
-        <button class="btn-trash" onclick="deleteRow('${row.id
-
-            }')">${TRASH_ICON}</button>
-
-      </td>
-
-    `;
-
-        container.appendChild(tr);
-
+    const rawSafes = state.rowData.filter((r) => r.type === CapTableRowType.Safe);
+    if (!container) return;
+    container.innerHTML = "";
+    const safeRows = state.rowData.filter((r) => r.type === CapTableRowType.Safe);
+    const showTrash = safeRows.length > 1;
+    safeRows.forEach((row) => {
+        const div = document.createElement("div");
+        div.className = "input-row";
+        div.innerHTML = `
+            <div class="col-name" data-label="Investor">
+                <input class="input" value="${row.name}" onchange="updateRow('${row.id}', 'name', this.value)" />
+            </div>
+            <div class="col-inv" data-label="Investment">
+                <input class="input" type="text" value="${formatUSDWithCommas(row.investment)}" 
+                    oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'investment', this.value)" />
+            </div>
+            <div class="col-cap" data-label="Cap">
+                <input class="input" type="text" value="${formatUSDWithCommas(row.cap)}" 
+                    oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'cap', this.value)" />
+            </div>
+            <div class="col-disc" data-label="Discount">
+                <div class="percentage-input-wrapper">
+                    <input class="input" type="text" value="${Math.round(row.discount * 100)}" 
+                        oninput="formatInputLive(this, false)" onchange="updateRow('${row.id}', 'discount', this.value)" />
+                    <span class="percentage-suffix">%</span>
+                </div>
+            </div>
+            <div class="col-type" data-label="Type">
+                <select class="select" onchange="updateRow('${row.id}', 'conversionType', this.value)">
+                    <option value="post" ${row.conversionType === "post" ? "selected" : ""}>Post-money</option>
+                    <option value="pre" ${row.conversionType === "pre" ? "selected" : ""}>Pre-money</option>
+                </select>
+            </div>
+            <div class="col-actions">
+                ${showTrash ? `<button class="btn-trash" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>` : ""}
+            </div>
+        `;
+        container.appendChild(div);
     });
-
 };
-
-
 
 const renderSeriesInvestors = () => {
-
     const container = document.getElementById("series-body");
-
     container.innerHTML = "";
-
     state.rowData
-
-        .filter((r) => r.type === "series")
-
+        .filter((r) => r.type === CapTableRowType.Series)
         .forEach((row) => {
-
-            const tr = document.createElement("tr");
-
-            tr.innerHTML = `
-
-      <td><input class="input" value="${row.name}" onchange="updateRow('${row.id
-
-                }', 'name', this.value)"></td>
-
-      <td><input class="input" type="text" value="${formatUSDWithCommas(
-
-                    row.investment
-
-                )}" oninput="formatInputLive(this, true)" onchange="updateRow('${row.id
-
-                }', 'investment', this.value)"></td>
-
-      <td class="text-right">
-
-        <button class="btn-trash" onclick="deleteRow('${row.id
-
-                }')">${TRASH_ICON}</button>
-
-      </td>
-
-    `;
-
-            container.appendChild(tr);
-
+            const rowDiv = document.createElement("div");
+            rowDiv.className = "input-row";
+            rowDiv.innerHTML = `
+                <div class="col-name" data-label="Investor">
+                    <input class="input" value="${row.name}" onchange="updateRow('${row.id}', 'name', this.value)">
+                </div>
+                <div class="col-inv" data-label="Investment">
+                    <input class="input" type="text" value="${formatUSDWithCommas(row.investment)}" oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'investment', this.value)">
+                </div>
+                <div class="col-actions">
+                    <button class="btn-trash" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>
+                </div>
+            `;
+            container.appendChild(rowDiv);
         });
-
 };
 
-
-
-// Helper to get raw rows from structured data for consistent table and chart rendering
-
 const getRowData = (data) => {
-
     const rows = [];
 
     if (!data) return rows;
-
-
-
-    // Common shareholders
 
     if (data.common) {
 
@@ -1826,10 +1356,6 @@ const getRowData = (data) => {
         });
 
     }
-
-
-
-    // SAFEs - shown individually
 
     if (data.safes) {
 
@@ -1861,10 +1387,6 @@ const getRowData = (data) => {
 
     }
 
-
-
-    // Series Investors - shown individually
-
     if (data.series) {
 
         data.series.forEach((se) => {
@@ -1891,10 +1413,6 @@ const getRowData = (data) => {
 
     }
 
-
-
-    // Refreshed Options Pool (Post-round only)
-
     if (data.refreshedOptionsPool && data.refreshedOptionsPool.shares > 0) {
 
         rows.push({
@@ -1915,13 +1433,9 @@ const getRowData = (data) => {
 
     }
 
-
-
     return rows;
 
 };
-
-
 
 const renderBreakdownTable = (preData, postData, pps) => {
 
@@ -1931,15 +1445,9 @@ const renderBreakdownTable = (preData, postData, pps) => {
 
     container.innerHTML = "";
 
-
-
     const preRows = getRowData(preData);
 
     const postRows = getRowData(postData);
-
-
-
-    // Guardrail: Check validity at the top so loops can use it
 
     const preSharesValid =
 
@@ -1961,17 +1469,11 @@ const renderBreakdownTable = (preData, postData, pps) => {
 
         postData.total.shares > 0;
 
-
-
-    // Get all unique IDs
-
     const allIds = Array.from(
 
         new Set([...preRows.map((r) => r.id), ...postRows.map((r) => r.id)])
 
     );
-
-
 
     allIds.forEach((id) => {
 
@@ -2005,10 +1507,6 @@ const renderBreakdownTable = (preData, postData, pps) => {
 
         };
 
-
-
-        // If row didn't exist in pre-round (isVirtual) or has 0 shares, show "—" instead of "0.00%"
-
         const prePctLabel =
 
             preSharesValid && !pre.isVirtual && pre.shares > 0
@@ -2025,23 +1523,9 @@ const renderBreakdownTable = (preData, postData, pps) => {
 
                 : "—";
 
-
-
-        // Determine Name to show
-
         let displayName = post.name || pre.name || "—";
 
-        // removed auto-renaming logic to respect input name
-
-
-
-        // Tags Generation
-
         let tagsHtml = "";
-
-
-
-        // SAFE Tags
 
         if (post.isPricedOrSafe && post.category === "SAFE Converter") {
 
@@ -2049,7 +1533,7 @@ const renderBreakdownTable = (preData, postData, pps) => {
 
                 tagsHtml += `<span class="tag tag-mfn">MFN</span>`;
 
-                tagsHtml += `<span class="tag tag-post">Post-money SAFE</span>`; // MFN usually converts as Post
+                tagsHtml += `<span class="tag tag-post">Post-money SAFE</span>`; 
 
             } else if (post.conversionType === "pre") {
 
@@ -2063,25 +1547,15 @@ const renderBreakdownTable = (preData, postData, pps) => {
 
         }
 
-
-
-        // Pool Top-Up Tag
-
-        // Check if it's the pool row OR if the category matches
-
         if (post.id === "UnusedOptionsPool" && postSharesValid && pre.shares >= 0) {
 
             if (post.shares > pre.shares + 1) {
-
-                // Tolerance for rounding
 
                 tagsHtml += `<span class="tag tag-topup">Pool Top-Up</span>`;
 
             }
 
         }
-
-
 
         const tr = document.createElement("tr");
 
@@ -2115,27 +1589,15 @@ const renderBreakdownTable = (preData, postData, pps) => {
 
     });
 
-
-
-    // Total row
-
     const totalTr = document.createElement("tr");
 
     totalTr.style.fontWeight = "500";
     totalTr.style.backgroundColor = "rgba(250, 250, 250, 1)";
     totalTr.style.borderBottom = "0.56px solid rgba(233, 234, 235, 1)";
 
-
-
-    // Guardrail: only show 100.00% if shares are validly computable
-
-    // (preSharesValid and postSharesValid are defined at top of function)
-
     const prePctLabel = preSharesValid ? "100.00%" : "—";
 
     const postPctLabel = postSharesValid ? "100.00%" : "—";
-
-
 
     totalTr.innerHTML = `
 
@@ -2165,25 +1627,17 @@ const renderBreakdownTable = (preData, postData, pps) => {
 
 };
 
-
-
-// --- Charting ---
-
-
-
 const renderPieChart = (postRound) => {
     const container = document.getElementById("pie-chart-container");
     if (!container) return;
 
-    // 1. Destroy previous chart instance to prevent memory leaks and hover glitches
     if (window.pieChartInstance) {
         window.pieChartInstance.destroy();
         window.pieChartInstance = null;
     }
 
-    // 2. Setup HTML structure
     container.innerHTML = `
-        <div style="max-width:100%; margin:auto; position:relative;">
+        <div style="width:100%; min-height: 480px; margin:auto; position:relative; padding-bottom: 2rem;">
             <canvas id="pieChartCanvas"></canvas>
         </div>
     `;
@@ -2191,7 +1645,6 @@ const renderPieChart = (postRound) => {
     const totalShares = postRound?.total?.shares || 0;
     if (totalShares <= 0) return;
 
-    // Helper to ensure number formatting doesn't break if global function is missing
     const formatValue = (val) => {
         return typeof formatNumberWithCommas === "function"
             ? formatNumberWithCommas(val)
@@ -2205,11 +1658,16 @@ const renderPieChart = (postRound) => {
     const data = rowData.map(r => r.shares);
 
     const backgroundColors = [
-        "#6366F1", // indigo
-        "#22D3EE", // cyan
-        "#FBBF24", // amber
-        "#F43F5E", // rose
-        "#8B5CF6"  // violet
+        "#6366F1", // Indigo
+        "#10B981", // Emerald
+        "#F59E0B", // Amber
+        "#EF4444", // Red
+        "#8B5CF6", // Violet
+        "#EC4899", // Pink
+        "#3B82F6", // Blue
+        "#F97316", // Orange
+        "#14B8A6", // Teal
+        "#64748B"  // Slate
     ];
 
     const canvas = document.getElementById("pieChartCanvas");
@@ -2222,35 +1680,41 @@ const renderPieChart = (postRound) => {
             datasets: [{
                 data,
                 backgroundColor: backgroundColors,
-                borderWidth: 0,
+                borderWidth: 1,
+                borderColor: "#ffffff",
                 hoverOffset: 12,
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 1.7,
-            cutout: "72%",
+            maintainAspectRatio: false, 
+            cutout: "70%",
             animation: {
                 duration: 900,
                 easing: "easeOutQuart"
             },
+            layout: {
+                padding: {
+                    top: 20,
+                    bottom: 40,
+                    left: 20,
+                    right: 20
+                }
+            },
             plugins: {
                 legend: {
-                    position: "right",
+                    position: "bottom",
                     align: "center",
                     labels: {
-                        padding: 20,
+                        padding: 15,
                         usePointStyle: true,
-                        pointStyle: "circle",
-                        boxWidth: 8,
-                        boxHeight: 8,
-                        // This "color" property is a fallback, but the generateLabels 
-                        // return object is the source of truth.
-                        color: "white",
+                        pointStyle: "rectRounded",
+                        boxWidth: 10,
+                        boxHeight: 10,
+                        color: "#000000",
                         font: {
-                            family: "'Inter', 'system-ui', sans-serif",
-                            size: 10,
+                            family: "'Inter', sans-serif",
+                            size: 11,
                             weight: "500",
                         },
                         generateLabels(chart) {
@@ -2259,13 +1723,11 @@ const renderPieChart = (postRound) => {
                                 const value = ds.data[i];
                                 const percent = ((value / totalShares) * 100).toFixed(1);
                                 return {
-                                    text: `${label}  ·  ${percent}%`,
+                                    text: `${label} (${percent}%)`,
                                     fillStyle: ds.backgroundColor[i],
                                     strokeStyle: "transparent",
                                     lineWidth: 0,
                                     index: i,
-                                    // FIX: Explicitly set the font color for the legend item text
-                                    fontColor: "#4A4340",
                                     hidden: chart.getDatasetMeta(0).data[i].hidden
                                 };
                             });
@@ -2273,24 +1735,17 @@ const renderPieChart = (postRound) => {
                     }
                 },
                 tooltip: {
-                    backgroundColor: "rgba(15, 23, 42, 0.96)",
-                    padding: 14,
-                    cornerRadius: 10,
-                    titleFont: {
-                        family: "Inter, sans-serif",
-                        size: 13,
-                        weight: "600"
-                    },
-                    bodyFont: {
-                        family: "Inter, sans-serif",
-                        size: 12
-                    },
-                    displayColors: false,
+                    backgroundColor: "rgba(0, 0, 0, 0.9)",
+                    padding: 12,
+                    cornerRadius: 4,
+                    titleFont: { family: "Inter, sans-serif", size: 12, weight: "600" },
+                    bodyFont: { family: "Inter, sans-serif", size: 11 },
+                    displayColors: true,
                     callbacks: {
                         label(ctx) {
                             const value = ctx.raw;
                             const percent = ((value / totalShares) * 100).toFixed(1);
-                            return `${formatValue(value)} shares • ${percent}%`;
+                            return `${formatValue(value)} shares (${percent}%)`;
                         }
                     }
                 }
@@ -2301,10 +1756,6 @@ const renderPieChart = (postRound) => {
 
 const old_renderPieChart_removed = () => {
 
-
-
-    // Guardrail: Render if total shares are > 0 (even in pre-round state)
-
     const totalShares = postRound && postRound.total ? postRound.total.shares : 0;
 
     if (totalShares <= 0) {
@@ -2312,8 +1763,6 @@ const old_renderPieChart_removed = () => {
         return;
 
     }
-
-
 
     const slices = getRowData(postRound).map((row, index) => {
         const colors = [
@@ -2329,19 +1778,11 @@ const old_renderPieChart_removed = () => {
         };
     });
 
-
-
-    // totalShares is already defined above
-
-
-
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 
     svg.setAttribute("viewBox", "0 0 100 100");
 
     svg.setAttribute("class", "chart-svg");
-
-
 
     let currentAngle = 0;
 
@@ -2353,8 +1794,6 @@ const old_renderPieChart_removed = () => {
 
         const sliceAngle = slicePct * 360;
 
-
-
         const x1 = 50 + 40 * Math.cos((Math.PI * (currentAngle - 90)) / 180);
 
         const y1 = 50 + 40 * Math.sin((Math.PI * (currentAngle - 90)) / 180);
@@ -2364,8 +1803,6 @@ const old_renderPieChart_removed = () => {
         const x2 = 50 + 40 * Math.cos((Math.PI * (currentAngle - 90)) / 180);
 
         const y2 = 50 + 40 * Math.sin((Math.PI * (currentAngle - 90)) / 180);
-
-
 
         const largeArcFlag = sliceAngle > 180 ? 1 : 0;
 
@@ -2382,20 +1819,16 @@ const old_renderPieChart_removed = () => {
         svg.appendChild(path);
     });
 
-
-
-    // Donut Cutout (White Center) - Larger radius for thinner donut look
     const centerCircle = document.createElementNS(
         "http://www.w3.org/2000/svg",
         "circle"
     );
     centerCircle.setAttribute("cx", "50");
     centerCircle.setAttribute("cy", "50");
-    centerCircle.setAttribute("r", "35"); // Increased from 26
+    centerCircle.setAttribute("r", "35"); 
     centerCircle.setAttribute("fill", "white");
     svg.appendChild(centerCircle);
 
-    // Center Text
     const centerText = document.createElementNS("http://www.w3.org/2000/svg", "text");
     centerText.setAttribute("x", "50");
     centerText.setAttribute("y", "50");
@@ -2409,7 +1842,7 @@ const old_renderPieChart_removed = () => {
     tspanValue.setAttribute("font-size", "12");
     tspanValue.setAttribute("font-weight", "700");
     tspanValue.setAttribute("fill", "var(--text-dark)");
-    tspanValue.textContent = safeFormatNumber(totalShares); // Show total shares or similar
+    tspanValue.textContent = safeFormatNumber(totalShares); 
 
     const tspanLabel = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
     tspanLabel.setAttribute("x", "50");
@@ -2424,7 +1857,6 @@ const old_renderPieChart_removed = () => {
 
     container.appendChild(svg);
 
-    // Legend
     const legend = document.createElement("div");
     legend.className = "donut-legend";
     slices.forEach((slice) => {
@@ -2443,7 +1875,6 @@ const old_renderPieChart_removed = () => {
     });
     container.appendChild(legend);
 
-    // Footer
     const footer = document.createElement("div");
     footer.className = "chart-footer";
     footer.innerHTML = `
@@ -2456,8 +1887,6 @@ const old_renderPieChart_removed = () => {
     `;
     container.appendChild(footer);
 };
-
-
 
 const renderBarChart = (preFounderPct, postFounderPct) => {
     const container = document.getElementById("bar-chart-container");
@@ -2489,8 +1918,8 @@ const renderBarChart = (preFounderPct, postFounderPct) => {
                 label: 'Founder Ownership',
                 data: data,
                 backgroundColor: [
-                    getComputedStyle(document.documentElement).getPropertyValue('#635BFF').trim() || '#c7d2fe',
-                    getComputedStyle(document.documentElement).getPropertyValue('#16CAD6').trim() || '#818cf8'
+                    "#6366F1", // Indigo
+                    "#10B981"  // Emerald
                 ],
                 barPercentage: 0.45,
                 categoryPercentage: 0.6
@@ -2549,15 +1978,9 @@ const renderAIAdvisor = (preRound, postRound, pricedConversion, state) => {
 
     container.innerHTML = "";
 
-
-
     const newMoneyRaised = pricedConversion.totalSeriesInvestment;
 
     const preMoney = state.preMoney;
-
-
-
-    // 1. Gating
 
     if (preMoney <= 0 || newMoneyRaised <= 0) {
 
@@ -2567,13 +1990,7 @@ const renderAIAdvisor = (preRound, postRound, pricedConversion, state) => {
 
     }
 
-
-
     const insights = [];
-
-
-
-    // a) Scenario summary
 
     const investment = formatUSDWithCommas(newMoneyRaised);
 
@@ -2584,10 +2001,6 @@ const renderAIAdvisor = (preRound, postRound, pricedConversion, state) => {
             <div>You are modeling a <strong>${state.roundName}</strong> round raising <strong>${investment}</strong> at a <strong>${preMoneyStr}</strong> pre-money valuation.</div>
         </div>
     `);
-
-
-
-    // b) Founder ownership change
 
     const foundersPost = postRound.common.filter((c) => c.category === "Founder");
 
@@ -2609,17 +2022,11 @@ const renderAIAdvisor = (preRound, postRound, pricedConversion, state) => {
 
     );
 
-
-
     insights.push(`
         <div class="insight-item">
             <div>Founder ownership changes from <strong>${safeFormatPercent(totalFounderPctPre)}</strong> pre-round to <strong>${safeFormatPercent(totalFounderPctPost)}</strong> post-round.</div>
         </div>
     `);
-
-
-
-    // c) Majority ownership warning (conditional)
 
     if (totalFounderPctPre >= 0.5 && totalFounderPctPost < 0.5) {
         insights.push(`
@@ -2629,10 +2036,6 @@ const renderAIAdvisor = (preRound, postRound, pricedConversion, state) => {
         `);
     }
 
-
-
-    // d) Option pool explanation (conditional)
-
     if (pricedConversion.increaseInOptionsPool > 0) {
         insights.push(`
             <div class="insight-item">
@@ -2641,25 +2044,15 @@ const renderAIAdvisor = (preRound, postRound, pricedConversion, state) => {
         `);
     }
 
-
-
     container.innerHTML = insights.join("");
 
 };
-
-
-
-// --- Event Handlers ---
-
-
 
 window.updateRow = (id, field, value) => {
 
     const row = state.rowData.find((r) => r.id === id);
 
     if (!row) return;
-
-
 
     if (field === "shares" || field === "investment" || field === "cap") {
 
@@ -2678,8 +2071,6 @@ window.updateRow = (id, field, value) => {
     updateUI();
 
 };
-
-
 
 window.addRow = (type) => {
 
@@ -2703,7 +2094,7 @@ window.addRow = (type) => {
 
         });
 
-    } else if (type === "safe") {
+    } else if (type === CapTableRowType.Safe) {
 
         state.rowData.push({
 
@@ -2723,7 +2114,7 @@ window.addRow = (type) => {
 
         });
 
-    } else if (type === "series") {
+    } else if (type === CapTableRowType.Series) {
 
         state.rowData.push({ id, type, name: "New Investor", investment: 0 });
 
@@ -2733,33 +2124,44 @@ window.addRow = (type) => {
 
 };
 
-
-
 window.deleteRow = (id) => {
+    const row = state.rowData.find((r) => r.id === id);
+    if (!row) return;
 
-    // If user deletes the "UnusedOptionsPool", they likely want to remove the pool concept entirely.
-
-    // So we effectively set the Target Option Pool to 0%.
-
+    // Special case: allow removing the synthetic unused options pool row
     if (id === "UnusedOptionsPool") {
-
         state.targetOptionsPool = 0;
-
         const targetInput = document.getElementById("target-options-input");
-
         if (targetInput) targetInput.value = "0";
-
+    } else {
+        // Prevent deleting the last input row of each type
+        if (row.type === CapTableRowType.Common) {
+            const commonCount = state.rowData.filter(
+                (r) => r.type === CapTableRowType.Common && r.id !== "UnusedOptionsPool"
+            ).length;
+            if (commonCount <= 1) {
+                return;
+            }
+        } else if (row.type === CapTableRowType.Safe) {
+            const safeCount = state.rowData.filter(
+                (r) => r.type === CapTableRowType.Safe
+            ).length;
+            if (safeCount <= 1) {
+                return;
+            }
+        } else if (row.type === CapTableRowType.Series) {
+            const seriesCount = state.rowData.filter(
+                (r) => r.type === CapTableRowType.Series
+            ).length;
+            if (seriesCount <= 1) {
+                return;
+            }
+        }
     }
 
-
-
     state.rowData = state.rowData.filter((r) => r.id !== id);
-
     updateUI();
-
 };
-
-
 
 window.togglePricedRound = () => {
 
@@ -2774,8 +2176,6 @@ window.togglePricedRound = () => {
     updateUI();
 
 };
-
-
 
 window.updateGlobal = (field, value) => {
 
@@ -2793,46 +2193,6 @@ window.updateGlobal = (field, value) => {
 
 };
 
-
-
-window.toggleDarkMode = () => {
-
-    state.darkMode = !state.darkMode;
-
-    document.documentElement.classList.toggle("dark", state.darkMode);
-
-    localStorage.setItem("color-theme", state.darkMode ? "dark" : "light");
-
-};
-
-
-
-// --- Initialization ---
-
-
-
 document.addEventListener("DOMContentLoaded", () => {
-
-    // Check theme
-
-    const storedTheme = localStorage.getItem("color-theme");
-
-    if (
-
-        storedTheme === "dark" ||
-
-        (!storedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches)
-
-    ) {
-
-        state.darkMode = true;
-
-        document.documentElement.classList.add("dark");
-
-    }
-
-
-
     updateUI();
-
 });

@@ -40,7 +40,7 @@
             <h1 style="font-size: 2.5rem; line-height: 3rem; margin-bottom: 1rem">
 
                 SAFE Calculator
-
+                <button class="btn btn-outline" id="reset-btn" onclick="resetCalculator()">Reset</button>
             </h1>
 
             <p class="card-subtext" style="
@@ -65,9 +65,13 @@
 
         </div>
 
+        <!-- Global Error Container -->
+        <div id="global-error-container" style="max-width: 800px; margin: 0 auto 2rem auto;"></div>
 
 
-        <main>
+
+        <main class="split-layout-wrapper">
+            <div class="calculator-column"> <!-- Left Side -->
 
             <!-- Calculator Card -->
 
@@ -85,11 +89,7 @@
 
                             <p class="card-subtext">
 
-                                Define the company’s ownership as it stands today, before any
-
-                                new SAFEs or priced financing. This includes founders, issued
-
-                                equity, and the current unallocated option pool.
+                              Current ownership before financing
 
                             </p>
 
@@ -103,36 +103,17 @@
 
                     </div>
 
-                    <div class="table-container">
-
-                        <table class="cap-table">
-
-                            <thead>
-
-                                <tr>
-
-                                    <th class="col-name">Shareholder</th>
-
-                                    <th class="col-cat">Category</th>
-
-                                    <th class="col-shares">Shares</th>
-
-                                    <th class="col-pct text-right">% Ownership</th>
-
-                                    <th class="col-actions text-right"></th>
-
-                                </tr>
-
-                            </thead>
-
-                            <tbody id="shareholders-body">
-
-                                <!-- JS rendered -->
-
-                            </tbody>
-
-                        </table>
-
+                    <div class="input-table-replacement" id="shareholders-container">
+                        <div class="input-header">
+                            <div class="col-name">Shareholder</div>
+                            <div class="col-cat">Category</div>
+                            <div class="col-shares">Shares</div>
+                            <div class="col-pct text-right">Ownership </div>
+                            <div class="col-actions"></div>
+                        </div>
+                        <div id="shareholders-body">
+                            <!-- JS rendered as divs -->
+                        </div>
                     </div>
 
                     <div id="cap-table-footer" class="card-footer">
@@ -159,13 +140,7 @@
 
                             <p class="card-subtext">
 
-                                Add each SAFE and its economic terms, including valuation
-
-                                caps, discounts, and MFN provisions. These instruments will
-
-                                convert in the priced round and directly shape post-financing
-
-                                ownership.
+                                Convertible instruments to include in conversion
 
                             </p>
 
@@ -179,38 +154,18 @@
 
                     </div>
 
-                    <div class="table-container">
-
-                        <table class="safe-table">
-
-                            <thead>
-
-                                <tr>
-
-                                    <th class="col-name">Investor</th>
-
-                                    <th class="col-inv">Investment</th>
-
-                                    <th class="col-cap">Cap</th>
-
-                                    <th class="col-disc">Discount</th>
-
-                                    <th class="col-type">Type</th>
-
-                                    <th class="col-actions text-right"></th>
-
-                                </tr>
-
-                            </thead>
-
-                            <tbody id="safes-body">
-
-                                <!-- JS rendered -->
-
-                            </tbody>
-
-                        </table>
-
+                    <div class="input-table-replacement" id="safes-container">
+                        <div class="input-header">
+                            <div class="col-name">Investor</div>
+                            <div class="col-inv">Investment</div>
+                            <div class="col-cap">Cap</div>
+                            <div class="col-disc">Discount</div>
+                            <div class="col-type">Type</div>
+                            <div class="col-actions"></div>
+                        </div>
+                        <div id="safes-body">
+                            <!-- JS rendered as divs -->
+                        </div>
                     </div>
 
                 </section>
@@ -231,11 +186,7 @@
 
                             <p class="card-subtext">
 
-                                Set the valuation and new capital raised in the financing
-
-                                round. Any option pool top-ups are applied here and determine
-
-                                how dilution is allocated.
+                                Configure your financing terms
 
                             </p>
 
@@ -286,32 +237,15 @@
 
                     <!-- 3. Investor Section (Table Layout) -->
 
-                    <div class="table-container">
-
-                        <table>
-
-                            <thead>
-
-                                <tr>
-
-                                    <th>Investor</th>
-
-                                    <th>Investment</th>
-
-                                    <th class="col-actions text-right"></th>
-
-                                </tr>
-
-                            </thead>
-
-                            <tbody id="series-body">
-
-                                <!-- JS rendered -->
-
-                            </tbody>
-
-                        </table>
-
+                    <div class="input-table-replacement" id="series-container">
+                        <div class="input-header">
+                            <div class="col-name">Investor</div>
+                            <div class="col-inv">Investment</div>
+                            <div class="col-actions"></div>
+                        </div>
+                        <div id="series-body">
+                            <!-- JS rendered as divs -->
+                        </div>
                     </div>
 
 
@@ -395,10 +329,11 @@
                     </div>
 
                 </section>
+            </div> <!-- End Calculator Shell -->
+        </div> <!-- End Calculator Column -->
 
-
-
-                <!-- Section 4: Results -->
+        <div class="results-column"> <!-- Right Side -->
+            <!-- Section 4: Results -->
 
                 <section id="results-card">
 
@@ -408,15 +343,7 @@
 
                             <h2>Results</h2>
 
-                            <p class="card-subtext">
-
-                                See the fully diluted ownership and share issuance after all
-
-                                conversions and adjustments. This view shows the combined
-
-                                impact of SAFEs, option pool changes, and the priced round.
-
-                            </p>
+            
 
                         </div>
 
@@ -574,10 +501,7 @@
 
                     </div>
 
-                </section>
-
-            </div>
-
+            </div> <!-- End Results Column -->
         </main>
 
     </div>
