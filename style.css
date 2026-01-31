@@ -181,10 +181,10 @@ b {
 
 .calculator-shell {
     width: 100%;
-    margin: 2rem auto;
+    margin: 1rem auto;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem;
 }
 
 /* ============================================
@@ -193,10 +193,10 @@ b {
 
 .calculator-shell section {
     background-color: var(--white);
-    border-radius: var(--radius-medium);
+    border-radius: 12px;
     border: 1px solid var(--border);
-    box-shadow: var(--shadow-card);
     padding: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 /* Results card section styling */
@@ -218,11 +218,47 @@ b {
 }
 
 .results-column .results-summary-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
     margin-bottom: 2rem;
 }
 
-.results-column .results-charts-row {
-    margin-bottom: 2rem;
+@media (max-width: 768px) {
+    .results-column .results-summary-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+.results-charts-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr; /* Precise proportional control */
+    gap: 3rem;
+    margin-top: 1rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    align-items: start;
+    width: 100%;
+}
+
+.chart-column {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (max-width: 1024px) {
+    .results-charts-row {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+    }
+}
+
+@media (max-width: 1024px) {
+    .results-charts-row {
+        flex-direction: column;
+        gap: 3rem;
+    }
 }
 
 .card {
@@ -245,7 +281,7 @@ b {
     justify-content: space-between;
     align-items: flex-start;
     width: 100%;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem; /* Slightly more room */
     gap: 1rem;
 }
 
@@ -345,31 +381,32 @@ b {
 
 .input,
 input[type="text"],
-input[type="number"] {
+input[type="number"],
+.input {
     font-family: "Inter", sans-serif;
-    font-size: 1rem;
+    font-size: 0.875rem;
     font-weight: 400;
     width: 100%;
-    padding: 0.5rem 0.75rem;
+    padding: 0 1rem;
     height: 40px;
-    border-radius: var(--radius-small);
-    border: 1px solid var(--border);
-    background-color: var(--white);
-    color: #181d27;
+    border-radius: 8px;
+    border: 1px solid #F1F5F9;
+    background-color: #F8FAFC;
+    color: var(--text-dark);
     outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
 }
 
 .input:focus,
 input[type="text"]:focus,
-input[type="number"]:focus {
-    box-shadow: 0px 2px 4px -2px rgba(0, 0, 0, 0.1);
-
-
-
-    box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.1);
-
-    border: 2px solid rgba(95, 70, 255, 1);
+input[type="number"]:focus,
+select:focus,
+.select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.1); 
+    outline: none;
 }
 
 .input:disabled,
@@ -390,23 +427,23 @@ input[readonly] {
 select,
 .select {
     font-family: "Inter", sans-serif;
-    font-size: 1rem;
+    font-size: 0.875rem;
     font-weight: 400;
     width: 100%;
-    padding: 0.5rem 2rem 0.5rem 0.75rem;
+    padding: 0 2rem 0 1rem;
     height: 40px;
-    border-radius: var(--radius-small);
-    border: 1px solid var(--border);
-    background-color: var(--white);
+    border-radius: 8px;
+    border: 1px solid #F1F5F9;
+    background-color: #F8FAFC;
     color: var(--text-dark);
     outline: none;
     cursor: pointer;
-    -webkit-appearance: none;
-    -moz-appearance: none;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23717171' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23667085' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
+    background-size: 1rem;
+    transition: all 0.2s;
 }
 
 select:focus,
@@ -460,21 +497,20 @@ input[type="checkbox"] {
 /* Primary Button */
 .btn-primary {
     background-color: #FFFFFF;
-    color: #000000;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #111827;
+    border: 1px solid #E5E7EB;
     border-radius: 8px;
-    padding: 4px 16px;
+    padding: 0.4rem 0.8rem;
     font-weight: 500;
-    font-size: 16px;
-    line-height: 32px;
-    letter-spacing: 0;
-    vertical-align: middle;
-    box-shadow: 0px 1.33px 4px 0px rgba(33, 33, 38, 0.1);
+    font-size: 0.8125rem;
+    line-height: 1.5;
     transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .btn-primary:hover {
-    background-color: #f7f7f7;
+    background-color: #F9FAFB;
+    border-color: #D1D5DB;
 }
 
 
@@ -549,6 +585,7 @@ table {
 thead {
     position: sticky;
     top: 0;
+    z-index: 20; /* Higher than the sticky column */
     background: rgba(250, 250, 250, 1);
     border-bottom: 0.56px solid rgba(233, 234, 235, 1);
 }
@@ -577,7 +614,7 @@ td {
 
 /* Column widths */
 .col-name {
-    width: 30%;
+    display: none;
 }
 
 .col-cat {
@@ -850,10 +887,10 @@ table .percentage-input-wrapper .percentage-suffix {
    ============================================ */
 
 .ai-insights-box {
-    background: rgba(246, 245, 254, 1);
+    background: rgba(249, 250, 251, 0.8);
     border: 1px solid var(--border);
     border-radius: var(--radius-medium);
-    padding: 2.5rem;
+    padding: 1.5rem;
     margin-top: 1.5rem;
     position: relative;
     overflow: hidden;
@@ -862,15 +899,15 @@ table .percentage-input-wrapper .percentage-suffix {
 
 .result-tile {
     background: var(--white);
-    padding: 1.5rem;
-    text-align: center;
+    padding: 1.25rem 1.5rem;
+    text-align: left;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 0.5rem;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 12px;
-
+    gap: 0.25rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: none;
 }
 
 .ai-insight.result-tile {
@@ -890,18 +927,20 @@ table .percentage-input-wrapper .percentage-suffix {
 
 
 .result-tile-label {
-    font-size: 0.875rem;
-    font-weight: 400;
-    color: rgba(112, 109, 161, 1);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-light);
     letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
 }
 
 .result-tile-value {
-    font-size: 2.5rem;
-    font-weight: 500;
-    color: rgba(99, 91, 255, 1);
-    letter-spacing: -1.12px;
-    line-height: 3rem;
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    letter-spacing: -0.5px;
+    line-height: 1.2;
 }
 
 .ai-insights-header {
@@ -1031,21 +1070,92 @@ table .percentage-input-wrapper .percentage-suffix {
 }
 
 .chart-title {
-    font-size: 0.9375rem;
-    font-weight: 500;
+    font-size: 0.875rem;
+    font-weight: 600;
     color: var(--text-dark);
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 /* Donut Chart Container - Horizontal Layout */
 .donut-container {
     position: relative;
     width: 100%;
+}
+
+/* Donut Chart Container - Horizontal Layout */
+.donut-container {
+    position: relative;
+    width: 100%;
+}
+
+.pie-chart-wrapper {
     display: flex;
     align-items: center;
+    gap: 1.5rem;
+    width: 100%;
+}
+
+.canvas-box {
+    flex: 0 0 100px; /* Precise 100px width as requested */
+    height: 100px; /* Precise 100px height as requested */
+    position: relative;
+}
+
+.legend-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     justify-content: center;
-    padding: 1.5rem;
+    gap: 0.5rem; /* Tighter gap for a more structured feel */
+    min-width: 0;
+    padding-left: 0.5rem; /* Slight breather from the chart */
+}
+
+.custom-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.125rem 0;
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.legend-name {
+    flex: 1;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-medium);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.legend-pct {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-left: auto;
+    text-align: right;
+    min-width: 45px;
+}
+
+/* Mobile: stacked charts */
+@media (max-width: 640px) {
+    .pie-chart-wrapper {
+        flex-direction: column;
+        min-height: auto;
+    }
+    .canvas-box {
+        max-width: 100%;
+    }
 }
 
 .donut-center-text {
@@ -1060,11 +1170,13 @@ table .percentage-input-wrapper .percentage-suffix {
 
 /* Bar Chart Container */
 .bar-chart-container {
-    width: 100%;
+    width: 250px;
+    height: 250px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    margin: 0 auto;
 }
 
 .bar-labels {
@@ -1129,15 +1241,15 @@ table .percentage-input-wrapper .percentage-suffix {
 }
 
 .results-table th {
-    padding: 1rem 1.25rem;
+    padding: 0.75rem 1rem;
     border-bottom: 1px solid rgba(233, 234, 235, 1);
     border-right: 1px solid rgba(233, 234, 235, 1);
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     font-weight: 600;
-    color: var(--text-medium);
-    background: rgba(249, 250, 251, 1);
+    color: var(--text-light);
+    background: rgba(249, 250, 251, 0.5);
     text-align: left;
-    letter-spacing: 0.025em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
 }
 
@@ -1150,10 +1262,10 @@ table .percentage-input-wrapper .percentage-suffix {
 }
 
 .results-table td {
-    padding: 1rem 1.25rem;
+    padding: 0.875rem 1rem;
     border-bottom: 1px solid rgba(233, 234, 235, 1);
     border-right: 1px solid rgba(233, 234, 235, 1);
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: var(--text-dark);
     vertical-align: middle;
     line-height: 1.5;
@@ -1477,30 +1589,37 @@ table .percentage-input-wrapper .percentage-suffix {
 /* Percentage Input with Attached Suffix */
 .percentage-input-wrapper {
     display: flex;
-    align-items: center;
-    gap: 0;
+    align-items: stretch;
+    width: 100%;
+    height: 36px;
+    border-radius: 6px;
+    overflow: hidden;
 }
 
+.percentage-input-wrapper input,
 .percentage-input-wrapper .compact-input {
-    width: 70px;
+    flex: 1;
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
+    border-right: none;
     text-align: right;
+    height: 36px;
 }
 
 .percentage-suffix {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 40px;
-    padding: 0 0.75rem;
-    background-color: var(--background-light);
+    height: 36px;
+    padding: 0 0.875rem;
+    background-color: #F9FAFB;
     border: 1px solid var(--border);
-    border-left: none;
-    border-radius: 0 var(--radius-small) var(--radius-small) 0;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--text-medium);
+    border-left: none; /* Connect to input */
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-light);
+    text-transform: uppercase;
+    transition: all 0.2s;
 }
 
 /* Option Pool Summary Panel */
@@ -1602,15 +1721,16 @@ table .percentage-input-wrapper .percentage-suffix {
     font-family: inherit;
     display: inline-flex;
     align-items: center;
-    padding: 0.125rem 0.5rem;
-    border-radius: 4px; /* More standard tag shape */
-    font-size: 0.65rem;
-    font-weight: 600;
+    padding: 0.1875rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.6875rem;
+    font-weight: 500;
     line-height: 1.2;
-    margin-left: 0.65rem;
-    letter-spacing: 0.02em;
+    margin-left: 0.5rem;
+    letter-spacing: 0;
     vertical-align: middle;
-    text-transform: uppercase;
+    text-transform: none;
+    white-space: nowrap;
 }
 
 .tag-pre {
@@ -1621,9 +1741,9 @@ table .percentage-input-wrapper .percentage-suffix {
 }
 
 .tag-post {
-    background-color: #ffffff;
-    color: #000000;
-    border: 0.75px solid #000000;
+    background-color: rgba(249, 250, 251, 1);
+    color: var(--text-medium);
+    border: 1px solid var(--border);
 }
 
 .dark .tag-post {
@@ -1693,19 +1813,18 @@ table .percentage-input-wrapper .percentage-suffix {
     align-items: flex-start;
     margin-top: 2rem;
     justify-content: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap; /* Prevent premature wrapping */
 }
 
 .calculator-column {
-    width: 655.2px;
-    max-width: 100%;
+    flex: 1;
     min-width: 0;
-    flex-shrink: 0;
+    max-width: 655px;
 }
 
 .results-column {
-    width: 784px;
-    max-width: 100%;
+    flex: 1.2;
+    max-width: 784px;
     position: sticky;
     top: 2rem;
     max-height: calc(100vh - 4rem);
@@ -1745,63 +1864,213 @@ table .percentage-input-wrapper .percentage-suffix {
     flex-direction: column;
     width: 100%;
     margin-top: 1rem;
+    gap: 0.75rem;
+    border: none;
+    background: transparent;
 }
 
-.input-header {
+.input-table-replacement::-webkit-scrollbar {
+    height: 6px;
+}
+
+.input-table-replacement::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 3px;
+}
+
+.input-row-card {
+    background: var(--white);
+    border: 1px solid #F1F5F9;
+    border-radius: 12px;
+    padding: 1.25rem;
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 0.75rem;
-    padding: 0.75rem;
-    border-bottom: 2px solid var(--border);
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-light);
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.input-row-card:hover {
+    border-color: var(--primary-light);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.06);
+}
+
+.card-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.25rem;
+}
+
+.card-title {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--text-dark);
     text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
-.input-row {
+.card-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.25rem;
+}
+
+.field-group {
     display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.field-label-inline {
+    font-size: 0.8125rem;
+    color: #94A3B8;
+    margin-left: 0.5rem;
+}
+
+.card-footer-info {
+    font-size: 0.75rem;
+    color: var(--text-medium);
+    font-weight: 500;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0,0,0,0.03);
+    display: flex;
+    justify-content: flex-end;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem;
-    border-bottom: 1px solid var(--border);
+    gap: 0.5rem;
+}
+
+.card-footer-value {
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+@media (max-width: 1024px) {
+    .input-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        row-gap: 1rem;
+    }
+    
+    .input-row .col-actions {
+        grid-column: 2;
+        justify-self: end;
+        align-self: start;
+    }
+    
+    #safes-container .input-row,
+    #series-container .input-row {
+        grid-template-columns: 1fr 1fr;
+    }
 }
 
 .input-row:last-child {
     border-bottom: none;
 }
 
-.col-name { flex: 2; min-width: 120px; }
-.col-cat { flex: 1.5; min-width: 100px; }
-.col-shares { flex: 1.2; min-width: 80px; }
-.col-inv { flex: 1.2; min-width: 80px; }
-.col-cap { flex: 1.2; min-width: 80px; }
-.col-disc { flex: 0.8; min-width: 60px; }
-.col-type { flex: 1; min-width: 90px; }
-.col-pct { flex: 1; min-width: 70px; text-align: right; }
-.col-actions { width: 40px; text-align: right; flex-shrink: 0; }
+.col-name, 
+.col-cat, 
+.col-shares, 
+.col-inv, 
+.col-cap, 
+.col-disc, 
+.col-type, 
+.col-pct {
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+}
 
-/* Medium breakpoint: let inputs wrap into a two-column grid-style layout */
-@media (max-width: 1024px) {
-    .input-row {
-        flex-wrap: wrap;
-    }
+.col-pct { 
+    text-align: right;
+    justify-content: flex-end;
+    padding-right: 0;
+}
 
-    .input-row .col-name,
-    .input-row .col-cat,
-    .input-row .col-shares,
-    .input-row .col-inv,
-    .input-row .col-cap,
-    .input-row .col-disc,
-    .input-row .col-type {
-        flex: 1 1 calc(50% - 0.75rem);
-        min-width: 0;
-    }
+.col-actions { 
+    width: 40px; 
+    min-width: 40px;
+    max-width: 40px;
+    text-align: right; 
+    flex-shrink: 0; 
+    justify-self: end;
+    align-self: center;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
 
-    .input-row .col-actions {
-        width: auto;
-        margin-left: auto;
-    }
+.col-actions .btn-trash {
+    margin: 0;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Ensure inputs fit perfectly and align properly */
+.input-row .input,
+.input-row .select,
+.input-row input,
+.input-row select {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+    height: 36px;
+    margin: 0;
+}
+
+/* Display-only columns (like col-pct) */
+.input-row .col-pct {
+    font-size: 0.875rem;
+    color: var(--text-dark);
+    font-weight: 400;
+    line-height: 36px;
+}
+
+/* Percentage input wrapper fits in grid */
+.input-row .percentage-input-wrapper {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+    align-items: stretch;
+}
+
+.input-row .percentage-input-wrapper .compact-input,
+.input-row .percentage-input-wrapper input {
+    flex: 1;
+    min-width: 60px;
+    max-width: 100%;
+    box-sizing: border-box;
+    height: 36px;
+}
+
+/* Ensure all inputs are properly contained */
+.input-row * {
+    box-sizing: border-box;
+}
+
+.input-row .input,
+.input-row .select,
+.input-row input,
+.input-row select {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
+
+/* Ensure select dropdowns align properly */
+.input-row select,
+.input-row .select {
+    padding-right: 2rem;
 }
 
 @media (max-width: 1500px) {
@@ -1815,9 +2084,10 @@ table .percentage-input-wrapper .percentage-suffix {
     }
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1000px) {
     .split-layout-wrapper {
         flex-direction: column;
+        flex-wrap: wrap;
     }
     .results-column {
         position: static;
@@ -1837,46 +2107,65 @@ table .percentage-input-wrapper .percentage-suffix {
    RESPONSIVE INPUT ROWS (DIV-BASED TABLES)
    ============================================ */
 
+.input-header {
+    display: none;
+}
+
 @media (max-width: 640px) {
     /* Headers become cramped on mobile; show per-field labels instead */
-    .input-header {
-        display: none;
-    }
 
     .input-row {
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        padding: 1rem 0;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.25rem; /* Increased mobile gap for clarity */
+        padding: 1.25rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .input-row:last-child {
+        border-bottom: none;
     }
 
     .input-row > [data-label] {
-        flex: 1 1 100%;
+        width: 100%;
         min-width: 0;
+        display: block; /* Ensure stacked layout on mobile */
     }
 
     .input-row > [data-label]::before {
         content: attr(data-label);
         display: block;
-        font-size: 0.7rem;
+        font-size: 0.6875rem;
         font-weight: 600;
         color: var(--text-light);
         text-transform: uppercase;
-        letter-spacing: 0.04em;
-        margin-bottom: 0.35rem;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.375rem; /* Consistent spacing between mobile label and input */
     }
 
     .input-row .col-actions {
-        flex: 0 0 auto;
-        width: auto;
-        margin-left: auto;
+        width: 100%;
+        text-align: left;
+        margin-top: 0.5rem;
+        grid-column: 1;
+    }
+    
+    .input-row .col-actions .btn-trash {
+        margin-left: 0;
     }
 
     .input-row .percentage-input-wrapper {
         width: 100%;
     }
 
-    .input-row .percentage-input-wrapper .compact-input {
+    .input-row .percentage-input-wrapper .compact-input,
+    .input-row .percentage-input-wrapper input {
         width: 100%;
-        flex: 1;
+        box-sizing: border-box;
+    }
+    
+    #safes-container .input-row,
+    #series-container .input-row {
+        grid-template-columns: 1fr;
     }
 }

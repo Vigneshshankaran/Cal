@@ -85,19 +85,31 @@ const safeFormatPPS = (value) => {
 };
 
 const formatInputLive = (input, isCurrency = false) => {
+    let value = input.value;
     
-    const rawValue = input.value.replace(/[^\d.-]/g, "");
-    const numValue = parseFloat(rawValue) || 0;
-
-    const cursorPos = input.selectionStart;
-    const oldLength = input.value.length;
+    // Save cursor position
+    const start = input.selectionStart;
+    const oldLength = value.length;
 
     if (isCurrency) {
-        input.value = formatUSDWithCommas(numValue);
+        // Remove everything except digits
+        let digits = value.replace(/\D/g, "");
+        if (digits === "") {
+            input.value = "$0";
+        } else {
+            input.value = formatUSDWithCommas(parseInt(digits));
+        }
     } else {
-        input.value = formatNumberWithCommas(numValue);
+        // Remove everything except digits
+        let digits = value.replace(/\D/g, "");
+        if (digits === "") {
+            input.value = "0";
+        } else {
+            input.value = formatNumberWithCommas(parseInt(digits));
+        }
     }
 
+    // Restore cursor position
     const newLength = input.value.length;
     const diff = newLength - oldLength;
     const newPos = Math.max(0, cursorPos + diff);
@@ -1204,39 +1216,33 @@ const updateUI = () => {
 };
 
 const renderShareholders = (totalSharesS0) => {
-
     const container = document.getElementById("shareholders-body");
-
     container.innerHTML = "";
-
     const categories = [
-
         "Founder",
-
         "ESOP Pool (granted)",
-
         "ESOP Pool (unallocated)",
-
         "Investor",
-
         "Other",
-
     ];
 
-    state.rowData
-        .filter((r) => r.type === CapTableRowType.Common)
-        .forEach((row) => {
-            const ownershipPct = totalSharesS0 > 0 ? row.shares / totalSharesS0 : NaN;
-            const pctText = safeFormatPercent(ownershipPct);
-
-            const rowDiv = document.createElement("div");
-            rowDiv.className = "input-row";
-            rowDiv.innerHTML = `
-                <div class="col-name" data-label="Shareholder">
-                    <input class="input" value="${row.name}" onchange="updateRow('${row.id}', 'name', this.value)">
-                </div>
-                <div class="col-cat" data-label="Category">
-                    <select class="input" onchange="updateRow('${row.id}', 'category', this.value)">
+    const shareholders = state.rowData.filter((r) => r.type === CapTableRowType.Common);
+    
+    shareholders.forEach((row) => {
+        const ownershipPct = totalSharesS0 > 0 ? row.shares / totalSharesS0 : NaN;
+        const pctText = safeFormatPercent(ownershipPct);
+        
+        const card = document.createElement("div");
+        card.className = "input-row-card";
+        card.innerHTML = `
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <input class="input" style="flex: 1;" value="${row.name}" placeholder="Name" onchange="updateRow('${row.id}', 'name', this.value)">
+                <button class="btn-trash" style="opacity: 0.3;" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>
+            </div>
+            
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                <div style="width: 25%;">
+                    <select class="select" onchange="updateRow('${row.id}', 'category', this.value)">
                         ${categories
                             .map(
                                 (cat) =>
@@ -1245,87 +1251,92 @@ const renderShareholders = (totalSharesS0) => {
                             .join("")}
                     </select>
                 </div>
-                <div class="col-shares" data-label="Shares">
-                    <input class="input" type="text" value="${formatNumberWithCommas(row.shares)}" oninput="formatInputLive(this, false)" onchange="updateRow('${row.id}', 'shares', this.value)">
+                
+                <div style="flex: 1; display: flex; align-items: center;">
+                    <input class="input" style="text-align: right;" type="text" value="${formatNumberWithCommas(row.shares)}" 
+                        oninput="formatInputLive(this, false)" onchange="updateRow('${row.id}', 'shares', this.value)">
+                    <span class="field-label-inline">shares</span>
                 </div>
-                <div class="col-pct text-right" data-label="% Ownership">
+
+                <div style="width: 80px; text-align: right; background: #F8FAFC; border-radius: 8px; padding: 0.5rem; font-size: 0.8125rem; color: #64748B; font-weight: 500;">
                     ${pctText}
                 </div>
-                <div class="col-actions">
-                    <button class="btn-trash" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>
-                </div>
-            `;
+            </div>
+        `;
 
-            container.appendChild(rowDiv);
-        });
-
+        container.appendChild(card);
+    });
 };
 
 const renderSAFEs = () => {
     const container = document.getElementById("safes-body");
-    container.innerHTML = "";
-    const rawSafes = state.rowData.filter((r) => r.type === CapTableRowType.Safe);
     if (!container) return;
     container.innerHTML = "";
     const safeRows = state.rowData.filter((r) => r.type === CapTableRowType.Safe);
     const showTrash = safeRows.length > 1;
-    safeRows.forEach((row) => {
-        const div = document.createElement("div");
-        div.className = "input-row";
-        div.innerHTML = `
-            <div class="col-name" data-label="Investor">
-                <input class="input" value="${row.name}" onchange="updateRow('${row.id}', 'name', this.value)" />
+    
+    safeRows.forEach((row, index) => {
+        const card = document.createElement("div");
+        card.className = "input-row-card";
+        card.innerHTML = `
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <input class="input" style="flex: 1;" value="${row.name}" placeholder="Investor Name" onchange="updateRow('${row.id}', 'name', this.value)" />
+                ${showTrash ? `<button class="btn-trash" style="opacity: 0.3;" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>` : ""}
             </div>
-            <div class="col-inv" data-label="Investment">
-                <input class="input" type="text" value="${formatUSDWithCommas(row.investment)}" 
-                    oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'investment', this.value)" />
-            </div>
-            <div class="col-cap" data-label="Cap">
-                <input class="input" type="text" value="${formatUSDWithCommas(row.cap)}" 
-                    oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'cap', this.value)" />
-            </div>
-            <div class="col-disc" data-label="Discount">
-                <div class="percentage-input-wrapper">
-                    <input class="input" type="text" value="${Math.round(row.discount * 100)}" 
-                        oninput="formatInputLive(this, false)" onchange="updateRow('${row.id}', 'discount', this.value)" />
-                    <span class="percentage-suffix">%</span>
+            
+            <div style="display: grid; grid-template-columns: 1.5fr 1.5fr 1fr 1.2fr; gap: 0.75rem; align-items: center;">
+                <div style="display: flex; align-items: center;">
+                    <input class="input" style="text-align: right;" type="text" value="${formatUSDWithCommas(row.investment)}" 
+                        oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'investment', this.value)" />
+                    <span class="field-label-inline">$</span>
                 </div>
-            </div>
-            <div class="col-type" data-label="Type">
+                
+                <div style="display: flex; align-items: center;">
+                    <input class="input" style="text-align: right;" type="text" value="${formatUSDWithCommas(row.cap)}" 
+                        oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'cap', this.value)" />
+                    <span class="field-label-inline">cap</span>
+                </div>
+                
+                <div style="display: flex; align-items: center;">
+                    <div class="percentage-input-wrapper">
+                        <input class="input" style="text-align: right; border-right: none; border-top-right-radius: 0; border-bottom-right-radius: 0;" type="text" value="${Math.round(row.discount * 100)}" 
+                            oninput="formatInputLive(this, false)" onchange="updateRow('${row.id}', 'discount', this.value)" />
+                        <span class="percentage-suffix">%</span>
+                    </div>
+                </div>
+                
                 <select class="select" onchange="updateRow('${row.id}', 'conversionType', this.value)">
                     <option value="post" ${row.conversionType === "post" ? "selected" : ""}>Post-money</option>
                     <option value="pre" ${row.conversionType === "pre" ? "selected" : ""}>Pre-money</option>
                 </select>
             </div>
-            <div class="col-actions">
-                ${showTrash ? `<button class="btn-trash" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>` : ""}
-            </div>
         `;
-        container.appendChild(div);
+        container.appendChild(card);
     });
 };
 
 const renderSeriesInvestors = () => {
     const container = document.getElementById("series-body");
+    if (!container) return;
     container.innerHTML = "";
-    state.rowData
-        .filter((r) => r.type === CapTableRowType.Series)
-        .forEach((row) => {
-            const rowDiv = document.createElement("div");
-            rowDiv.className = "input-row";
-            rowDiv.innerHTML = `
-                <div class="col-name" data-label="Investor">
-                    <input class="input" value="${row.name}" onchange="updateRow('${row.id}', 'name', this.value)">
-                </div>
-                <div class="col-inv" data-label="Investment">
-                    <input class="input" type="text" value="${formatUSDWithCommas(row.investment)}" oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'investment', this.value)">
-                </div>
-                <div class="col-actions">
-                    <button class="btn-trash" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>
-                </div>
-            `;
-            container.appendChild(rowDiv);
-        });
+    const seriesInvestors = state.rowData.filter((r) => r.type === CapTableRowType.Series);
+    seriesInvestors.forEach((row, index) => {
+        const card = document.createElement("div");
+        card.className = "input-row-card";
+        card.innerHTML = `
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <input class="input" style="flex: 1;" value="${row.name}" placeholder="Investor Name" onchange="updateRow('${row.id}', 'name', this.value)">
+                <button class="btn-trash" style="opacity: 0.3;" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>
+            </div>
+            
+            <div style="display: flex; align-items: center; width: 50%;">
+                <input class="input" style="text-align: right;" type="text" value="${formatUSDWithCommas(row.investment)}" 
+                    oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'investment', this.value)">
+                <span class="field-label-inline">$</span>
+            </div>
+        `;
+        container.appendChild(card);
+    });
 };
 
 const getRowData = (data) => {
@@ -1561,7 +1572,7 @@ const renderBreakdownTable = (preData, postData, pps) => {
 
         tr.innerHTML = `
 
-        <td>
+        <td class="col-name">
 
             ${displayName}
 
@@ -1637,8 +1648,13 @@ const renderPieChart = (postRound) => {
     }
 
     container.innerHTML = `
-        <div style="width:100%; min-height: 480px; margin:auto; position:relative; padding-bottom: 2rem;">
-            <canvas id="pieChartCanvas"></canvas>
+        <div class="pie-chart-wrapper">
+            <div class="canvas-box">
+                <canvas id="pieChartCanvas"></canvas>
+            </div>
+            <div id="pie-chart-legend" class="legend-box">
+                <!-- Custom legend items added here -->
+            </div>
         </div>
     `;
 
@@ -1659,14 +1675,14 @@ const renderPieChart = (postRound) => {
 
     const backgroundColors = [
         "#6366F1", // Indigo
+        "#8B5CF6", // Violet
         "#10B981", // Emerald
         "#F59E0B", // Amber
-        "#EF4444", // Red
-        "#8B5CF6", // Violet
-        "#EC4899", // Pink
         "#3B82F6", // Blue
+        "#EC4899", // Pink
         "#F97316", // Orange
         "#14B8A6", // Teal
+        "#EF4444", // Red
         "#64748B"  // Slate
     ];
 
@@ -1687,52 +1703,19 @@ const renderPieChart = (postRound) => {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false, 
+            maintainAspectRatio: true, 
+            aspectRatio: 1, // Keep it perfectly circular
             cutout: "70%",
             animation: {
                 duration: 900,
                 easing: "easeOutQuart"
             },
             layout: {
-                padding: {
-                    top: 20,
-                    bottom: 40,
-                    left: 20,
-                    right: 20
-                }
+                padding: 0
             },
             plugins: {
                 legend: {
-                    position: "bottom",
-                    align: "center",
-                    labels: {
-                        padding: 15,
-                        usePointStyle: true,
-                        pointStyle: "rectRounded",
-                        boxWidth: 10,
-                        boxHeight: 10,
-                        color: "#000000",
-                        font: {
-                            family: "'Inter', sans-serif",
-                            size: 11,
-                            weight: "500",
-                        },
-                        generateLabels(chart) {
-                            const ds = chart.data.datasets[0];
-                            return chart.data.labels.map((label, i) => {
-                                const value = ds.data[i];
-                                const percent = ((value / totalShares) * 100).toFixed(1);
-                                return {
-                                    text: `${label} (${percent}%)`,
-                                    fillStyle: ds.backgroundColor[i],
-                                    strokeStyle: "transparent",
-                                    lineWidth: 0,
-                                    index: i,
-                                    hidden: chart.getDatasetMeta(0).data[i].hidden
-                                };
-                            });
-                        }
-                    }
+                    display: false // We use our custom HTML legend instead
                 },
                 tooltip: {
                     backgroundColor: "rgba(0, 0, 0, 0.9)",
@@ -1752,6 +1735,21 @@ const renderPieChart = (postRound) => {
             }
         }
     });
+
+    // Render custom legend
+    const legendContainer = document.getElementById("pie-chart-legend");
+    if (legendContainer) {
+        legendContainer.innerHTML = rowData.map((row, i) => {
+            const percent = ((row.shares / totalShares) * 100).toFixed(1);
+            return `
+                <div class="custom-legend-row">
+                    <div class="legend-dot" style="width: 12px; height: 12px; background: ${backgroundColors[i % backgroundColors.length]}"></div>
+                    <span class="legend-name" style="font-size: 0.8125rem;">${row.name}</span>
+                    <span class="legend-pct" style="margin-left: auto; font-weight: 700;">${percent}%</span>
+                </div>
+            `;
+        }).join("");
+    }
 };
 
 const old_renderPieChart_removed = () => {
@@ -1928,7 +1926,7 @@ const renderBarChart = (preFounderPct, postFounderPct) => {
         options: {
             responsive: true,
             maintainAspectRatio: true,
-            aspectRatio: 1.8,
+            aspectRatio: 1, // Square for 250x250
             scales: {
                 y: {
                     beginAtZero: true,
@@ -1968,6 +1966,16 @@ const renderBarChart = (preFounderPct, postFounderPct) => {
             }
         }
     });
+
+    // Add summary text below bar chart
+    const summaryText = document.createElement("div");
+    summaryText.style.textAlign = "center";
+    summaryText.style.marginTop = "1rem";
+    summaryText.style.fontSize = "0.875rem";
+    summaryText.style.fontWeight = "600";
+    summaryText.style.color = "var(--text-medium)";
+    summaryText.innerHTML = `${(preFounderPct * 100).toFixed(1)}% &rarr; ${(postFounderPct * 100).toFixed(1)}%`;
+    container.appendChild(summaryText);
 };
 
 const renderAIAdvisor = (preRound, postRound, pricedConversion, state) => {

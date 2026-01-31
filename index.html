@@ -96,9 +96,7 @@
                         </div>
 
                         <button class="btn btn-primary" onclick="addRow('common')">
-
-                            Add shareholder
-
+                            + Add
                         </button>
 
                     </div>
@@ -147,9 +145,7 @@
                         </div>
 
                         <button class="btn btn-primary" onclick="addRow('safe')">
-
-                            Add SAFE
-
+                            + Add
                         </button>
 
                     </div>
@@ -193,9 +189,7 @@
                         </div>
 
                         <button class="btn btn-primary" onclick="addRow('series')">
-
-                            Add investor
-
+                            + Add
                         </button>
 
                     </div>
@@ -333,175 +327,91 @@
         </div> <!-- End Calculator Column -->
 
         <div class="results-column"> <!-- Right Side -->
-            <!-- Section 4: Results -->
-
-                <section id="results-card">
-
-                    <div class="card-header">
-
-                        <div class="card-title-group">
-
-                            <h2>Results</h2>
-
-            
-
-                        </div>
-
+            <!-- Section 4: Results Card (Summary + Charts) -->
+            <section id="results-card">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <h2>Results</h2>
                     </div>
+                </div>
 
-
-
-                    <div class="results-summary-row">
-
-                        <div class="result-tile">
-
-                            <div class="result-tile-label">Total post-round shares</div>
-
-                            <div id="total-post-shares-val" class="result-tile-value">
-
-                                0
-
-                            </div>
-
-                        </div>
-
-                        <div class="result-tile">
-
-                            <div class="result-tile-label">Founder ownership</div>
-
-                            <div id="founder-ownership-val" class="result-tile-value">
-
-                                0.00%
-
-                            </div>
-
-                        </div>
-
-                        <div class="result-tile">
-
-                            <div class="result-tile-label">Founder dilution</div>
-
-                            <div id="founder-dilution-val" class="result-tile-value">
-
-                                0.00%
-
-                            </div>
-
-                        </div>
-
+                <div class="results-summary-row">
+                    <div class="result-tile">
+                        <div class="result-tile-label">Total post-round shares</div>
+                        <div id="total-post-shares-val" class="result-tile-value">0</div>
                     </div>
-
-
-
-                    <div class="results-charts-row">
-
-                        <div class="chart-column">
-
-                            <div class="chart-title">Ownership split</div>
-
-                            <div id="pie-chart-container" class="donut-container">
-
-                                <!-- Donut chart rendered here -->
-
-                            </div>
-
-                        </div>
-
-                        <div class="chart-column">
-
-                            <div class="chart-title">Founder dilution (pre vs post)</div>
-
-                            <div id="bar-chart-container" class="bar-chart-container">
-
-                                <!-- Bar chart rendered here -->
-
-                            </div>
-
-                            <div id="dilution-summary-note" class="bar-caption">
-
-                                Founders diluted by 0.00 percentage points.
-
-                            </div>
-
-                        </div>
-
+                    <div class="result-tile">
+                        <div class="result-tile-label">Founder ownership</div>
+                        <div id="founder-ownership-val" class="result-tile-value">0.00%</div>
                     </div>
-
-
-
-                    <div class="table-container max-w-4xl mx-auto">
-
-                        <h3 class="subsection-title">Ownership breakdown</h3>
-
-                        <table class="results-table">
-
-                            <thead>
-
-                                <tr>
-
-                                    <th class="col-cat">Category</th>
-
-                                    <th class="text-right">Shares (Pre)</th>
-
-                                    <th class="text-right">Shares (Post)</th>
-
-                                    <th class="text-right">% (Pre)</th>
-
-                                    <th class="text-right">% (Post)</th>
-
-                                    <th class="text-right">PPS</th>
-
-                                </tr>
-
-                            </thead>
-
-                            <tbody id="post-round-table">
-
-                                <!-- JS rendered -->
-
-                            </tbody>
-
-                        </table>
-
+                    <div class="result-tile">
+                        <div class="result-tile-label">Founder dilution</div>
+                        <div id="founder-dilution-val" class="result-tile-value">0.00%</div>
                     </div>
+                </div>
 
-                </section>
-
-
-
-                <!-- Section 5: AI Equity Advisor -->
-
-                <section id="ai-advisor-section">
-
-                    <div class="card-header">
-
-                        <div class="card-title-group">
-
-                            <h2>AI Equity Advisor</h2>
-
-                            <p class="card-subtext">
-
-                                Analyzes your inputs and surfaces important observations,
-
-                                assumptions, or potential risks.
-
-                            </p>
-
+                <div class="results-charts-row">
+                    <div class="chart-column">
+                        <div class="chart-title">Ownership split</div>
+                        <div id="pie-chart-container" class="donut-container">
+                            <!-- Donut chart rendered here -->
                         </div>
-
                     </div>
-
-                    <div class="ai-insights-box">
-
-                        <div id="ai-insights-container" class="ai-insights-content">
-
-                            <!-- JS rendered insights -->
-
+                    <div class="chart-column">
+                        <div class="chart-title">Founder dilution (pre vs post)</div>
+                        <div id="bar-chart-container" class="bar-chart-container">
+                            <!-- Bar chart rendered here -->
                         </div>
-
+                    
                     </div>
+                </div>
+            </section>
 
-            </div> <!-- End Results Column -->
+            <!-- Section 5: AI Equity Advisor -->
+            <section id="ai-advisor-section">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <h2>AI Equity Advisor</h2>
+                        <p class="card-subtext">
+                            Analyzes your inputs and surfaces important observations,
+                            assumptions, or potential risks.
+                        </p>
+                    </div>
+                </div>
+                <div class="ai-insights-box">
+                    <div id="ai-insights-container" class="ai-insights-content">
+                        <!-- JS rendered insights -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 6: Ownership Breakdown -->
+            <section id="breakdown-section">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <h2>Ownership breakdown</h2>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th class="col-name" style="text-align: left;">Category</th>
+                                <th class="text-right">Shares (Pre)</th>
+                                <th class="text-right">Shares (Post)</th>
+                                <th class="text-right">% (Pre)</th>
+                                <th class="text-right">% (Post)</th>
+                                <th class="text-right">PPS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="post-round-table">
+                            <!-- JS rendered -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+               
+                </div> <!-- End Results Column -->
         </main>
 
     </div>
