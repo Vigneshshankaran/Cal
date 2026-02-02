@@ -149,7 +149,7 @@ h3 {
     gap: 12px;
     box-shadow: var(--shadow-input);
 }
-
+/* 
 .option-pool-input-wrapper {
     display: flex;
     align-items: center;
@@ -159,7 +159,7 @@ h3 {
     overflow: hidden;
     height: 36px;
     box-shadow: var(--shadow-input);
-}
+} */
 
 .option-pool-main-input {
     width: 80px;
