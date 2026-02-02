@@ -991,10 +991,10 @@ const renderSAFEs = () => {
                 </div>
                 <div>
                     <label class="field-label">Discount</label>
-                    <div class="safe-discount-group">
+                    <div class="input-with-symbol-right">
                         <input class="input safe-discount-input" type="text" value="${Math.round(row.discount * 100)}" 
                             oninput="formatInputLive(this, false)" onchange="updateRow('${row.id}', 'discount', this.value)" />
-                        <span class="input-suffix mr-8">%</span>
+                        <span class="input-symbol">%</span>
                     </div>
                 </div>
                 <div>
@@ -1288,7 +1288,8 @@ const renderBreakdownTable = (preData, postData, pps) => {
         }
 
         const tr = document.createElement("tr");
-        tr.className = "group";
+        tr.className = "group investor-row"; /* Added investor-row for styling */
+        tr.id = `row-${id}`;
 
         tr.innerHTML = `
         <td class="col-name">
@@ -1374,8 +1375,8 @@ const renderPieChart = (postRound) => {
     const labels = rowData.map(r => r.name);
     const data = rowData.map(r => r.shares);
     const backgroundColors = [
-        "#A855F7", "#6366F1", "#3B82F6", "#06B6D4", "#10B981",
-        "#84CC16", "#EAB308", "#F97316", "#4F46E5", "#64748B"
+        "#5F17EA", "#8B5CF6", "#22D3EE", "#22C55E", "#FACC15", 
+        "#A78BFA", "#6366F1", "#3B82F6", "#06B6D4", "#10B981"
     ];
 
     const canvas = document.getElementById("pieChartCanvas");
@@ -1390,37 +1391,56 @@ const renderPieChart = (postRound) => {
                 backgroundColor: backgroundColors,
                 borderWidth: 2,
                 borderColor: "#ffffff",
-                hoverOffset: 4
+                hoverOffset: 15 /* Increased for sector expansion effect */
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: "60%",
+            cutout: "50%",
+            onClick: (event, elements) => {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const id = rowData[index].id;
+                    const rowEl = document.getElementById(`row-${id}`);
+                    if (rowEl) {
+                        rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        rowEl.classList.add('highlight-row');
+                        rowEl.classList.add('highlight-flash');
+                        setTimeout(() => {
+                            rowEl.classList.remove('highlight-row');
+                            rowEl.classList.remove('highlight-flash');
+                        }, 2000);
+                    }
+                }
+            },
+            onHover: (event, elements) => {
+                if (event.native) {
+                    event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+                }
+            },
             plugins: {
                 legend: {
                     display: true,
                     position: 'bottom',
                     labels: {
-                        boxWidth: 5,
-                        boxHeight: 5,
-                        borderRadius: 5,
+                        boxWidth: 8,
+                        boxHeight: 8,
+                        borderRadius: 4,
                         usePointStyle: true,
-                        color: "rgba(74, 67, 64, 1)",
+                        color: "#4B5563",
                         font: { 
-                            size: 10, 
+                            size: 11, 
                             family: "'Inter', sans-serif", 
-                            weight: 400,
-                            lineHeight: 1.33 
+                            weight: 500
                         },
-                        padding: 15,
+                        padding: 20,
                         generateLabels: (chart) => {
                             const data = chart.data;
                             if (data.labels.length && data.datasets.length) {
                                 return data.labels.map((label, i) => {
                                     const value = data.datasets[0].data[i];
                                     const percentage = ((value / totalShares) * 100).toFixed(1);
-                                    // Hide legend item if share < 0.5% to avoid clutter
                                     if (value / totalShares < 0.005) return null;
                                     return {
                                         text: `${label} (${percentage}%)`,
@@ -1433,17 +1453,15 @@ const renderPieChart = (postRound) => {
                             }
                             return [];
                         }
-                    },
-                    onHover: (event, legendItem, legend) => {
-                        if (legend.chart.canvas) legend.chart.canvas.style.cursor = 'pointer';
-                    },
-                    onLeave: (event, legendItem, legend) => {
-                        if (legend.chart.canvas) legend.chart.canvas.style.cursor = 'default';
                     }
                 },
                 tooltip: {
                     enabled: true,
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    backgroundColor: '#ffffff',
+                    titleColor: '#111827',
+                    bodyColor: '#4B5563',
+                    borderColor: '#E5E7EB',
+                    borderWidth: 1,
                     padding: 12,
                     cornerRadius: 8,
                     titleFont: { size: 13, weight: '600', family: "'Inter', sans-serif" },
@@ -1456,9 +1474,6 @@ const renderPieChart = (postRound) => {
                         }
                     }
                 }
-            },
-            layout: {
-                padding: { top: 10, bottom: 10, left: 10, right: 10 }
             }
         }
     });
@@ -1588,23 +1603,23 @@ const renderAIAdvisor = (preRound, postRound, pricedConversion, state) => {
         const insights = [];
         const investment = formatUSDWithCommas(newMoneyRaised);
         const preMoneyStr = formatUSDWithCommas(preMoney);
-        insights.push(`
-            <div class="insight-item insight-item-header">
-                <div class="flex gap-3 items-start">
-                    <span class="insight-icon">✨</span>
-                    <div>You are modeling a <strong>${state.roundName}</strong> round raising <strong>${investment}</strong> at a <strong>${preMoneyStr}</strong> pre-money valuation.</div>
-                </div>
-            </div>
-        `);
+
         const foundersPost = postRound.common.filter((c) => c.category === "Founder");
         const foundersPre = preRound.common.filter((c) => c.category === "Founder");
         const totalFounderPctPost = foundersPost.reduce((a, f) => a + f.ownershipPct, 0);
         const totalFounderPctPre = foundersPre.reduce((a, f) => a + f.ownershipPct, 0);
-        insights.push(`
-            <div class="insight-item">
-                <div>Founder ownership changes from <strong>${safeFormatPercent(totalFounderPctPre)}</strong> pre-round to <strong>${safeFormatPercent(totalFounderPctPost)}</strong> post-round.</div>
-            </div>
-        `);
+
+        // Interpretation sentence
+        insights.push(`<p>You are modeling a <strong>${state.roundName}</strong> round raising <strong>${investment}</strong> at a <strong>${preMoneyStr}</strong> pre-money valuation. Founder ownership changes from <strong>${safeFormatPercent(totalFounderPctPre)}</strong> to <strong>${safeFormatPercent(totalFounderPctPost)}</strong> post-round.</p>`);
+
+        const safesCount = state.rowData.filter(r => r.type === CapTableRowType.Safe).length;
+        const totalSafeInvestment = state.rowData
+            .filter(r => r.type === CapTableRowType.Safe)
+            .reduce((sum, s) => sum + s.investment, 0);
+
+        if (safesCount > 0) {
+            insights.push(`<p>${safesCount} SAFE${safesCount > 1 ? 's' : ''} totaling ${formatUSDWithCommas(totalSafeInvestment)} will convert.</p>`);
+        }
         if (totalFounderPctPre >= 0.5 && totalFounderPctPost < 0.5) {
             insights.push(`
                 <div class="insight-item">
