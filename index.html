@@ -1,340 +1,125 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
-
-
 <head>
-
     <meta charset="UTF-8" />
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
     <title>Startup Equity Calculator</title>
-
     <meta name="description" content="A worksheet and calculator for modeling SAFE and priced round cap tables." />
-
-    <link rel="icon" type="image/svg+xml"
-        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2248%22 fill=%22%232563eb%22/></svg>" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2248%22 fill=%22%232563eb%22/></svg>" />
     <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="tags.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
-
-
 <body>
 
-    <!-- Global Header -->
-
-
-
-
-
-    <div class="container">
-
-        <!-- Page Title Block -->
-
-        <div class="text-center mb-8 mt-8">
-
-            <h1 style="font-size: 2.5rem; line-height: 3rem; margin-bottom: 1rem">
-
-                SAFE Calculator
-            
-            </h1>
-
-            <p class="card-subtext" style="
-
-            max-width: 600px;
-
-            margin: 0 auto;
-
-            font-size: 16px;
-
-            line-height: 1.5;
-
-          ">
-
-                Model pre-money and post-money SAFEs using YC-style conversion logic
-
-                and see real-time dilution across founders, investors, and option
-
-                pools.
-
+        <header class="mb-12 mt-8">
+            <h1>New Equity Model</h1>
+            <p class="header-description">
+                Model SAFEs and priced rounds with precision. Simulation #472.
             </p>
+        </header>
 
-        </div>
-
-        <!-- Global Error Container -->
-        <div id="global-error-container" style="max-width: 800px; margin: 0 auto 2rem auto;"></div>
+        <div id="global-error-container" class="error-container"></div>
 
 
 
         <main class="split-layout-wrapper">
-            <div class="calculator-column"> <!-- Left Side -->
-
-            <!-- Calculator Card -->
-
-            <div class="calculator-shell">
-
-                <!-- Section 1: Existing Cap Table -->
-
-                <section>
-
-                    <div class="card-header">
-
-                        <div class="card-title-group">
-
-                            <h2>Existing cap table</h2>
-
-                            <p class="card-subtext">
-
-                              Current ownership before financing
-
-                            </p>
-
+            <div class="calculator-column">
+                <div class="calculator-shell">
+                    <section id="cap-table-section">
+                        <div class="card-header">
+                            <div class="card-title-group">
+                                <h2>Existing Cap Table</h2>
+                                <p>Current ownership before financing</p>
+                            </div>
+                            <button class="btn btn-primary" onclick="addRow('common')">+ Add</button>
                         </div>
+                        <div id="shareholders-body"></div>
+                        <div id="cap-table-footer"></div>
+                    </section>
 
-                        <button class="btn btn-primary" onclick="addRow('common')">
-                            + Add
-                        </button>
-
-                    </div>
-
-                    <div class="input-table-replacement" id="shareholders-container">
-                        <div class="input-header">
-                            <div class="col-name">Shareholder</div>
-                            <div class="col-cat">Category</div>
-                            <div class="col-shares">Shares</div>
-                            <div class="col-pct text-right">Ownership </div>
-                            <div class="col-actions"></div>
+                    <section id="safes-section">
+                        <div class="card-header">
+                            <div class="card-title-group">
+                                <h2>SAFE Terms</h2>
+                                <p>Convertible instruments to include in conversion</p>
+                            </div>
+                            <button class="btn btn-primary" onclick="addRow('safe')">+ Add</button>
                         </div>
-                        <div id="shareholders-body">
-                            <!-- JS rendered as divs -->
+                        <div id="safes-container">
+                            <div id="safes-body"></div>
                         </div>
-                    </div>
+                    </section>
 
-                    <div id="cap-table-footer" class="card-footer">
-
-                        <span>Total fully diluted shares</span>
-
-                        <span id="total-shares-val" class="footer-value-primary">0</span>
-
-                    </div>
-
-                </section>
-
-
-
-                <!-- Section 2: SAFEs -->
-
-                <section>
-
-                    <div class="card-header">
-
-                        <div class="card-title-group">
-
-                            <h2>SAFEs</h2>
-
-                            <p class="card-subtext">
-
-                                Convertible instruments to include in conversion
-
-                            </p>
-
+                    <section id="priced-round-section">
+                        <div class="card-header">
+                            <div class="card-title-group">
+                                <h2>Priced Round Configuration</h2>
+                                <p>Configure your financing terms</p>
+                            </div>
                         </div>
-
-                        <button class="btn btn-primary" onclick="addRow('safe')">
-                            + Add
-                        </button>
-
-                    </div>
-
-                    <div class="input-table-replacement" id="safes-container">
-                        <div class="input-header">
-                            <div class="col-name">Investor</div>
-                            <div class="col-inv">Investment</div>
-                            <div class="col-cap">Cap</div>
-                            <div class="col-disc">Discount</div>
-                            <div class="col-type">Type</div>
-                            <div class="col-actions"></div>
+                        <div class="config-card">
+                            <label class="field-label">Pre-money Valuation</label>
+                            <div class="input-with-symbol valuation-input-wrapper">
+                                <span class="input-symbol">$</span>
+                                <input class="input valuation-main-input" type="text" id="pre-money-input" value="0" oninput="formatInputLive(this, true)" onchange="updateGlobal('preMoney', this.value)" />
+                            </div>
+                            <div class="valuation-subtext">
+                                Post-money valuation: <strong id="post-money-val-display">$0</strong>
+                            </div>
                         </div>
-                        <div id="safes-body">
-                            <!-- JS rendered as divs -->
+                        <div class="option-pool-card">
+                            <div class="flex-between items-start">
+                                <div>
+                                    <label class="field-label mb-0">Target Option Pool</label>
+                                    <p class="helper-text">Post-round unallocated pool</p>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="option-pool-input-wrapper">
+                                        <input class="input option-pool-main-input" type="text" id="target-options-input" value="10" oninput="formatInputLive(this, false)" onchange="updateGlobal('targetOptionsPool', this.value)" />
+                                    </div>
+                                    <span class="option-pool-suffix">%</span>
+                                </div>
+                            </div>
+                            <p id="additional-options-val-text" class="additional-shares-note">+0 shares will be added to reach target</p>
                         </div>
-                    </div>
-
-                </section>
-
-
-
-                <!-- Section 3: Priced Round -->
-
-                <section id="priced-round-card">
-
-                    <!-- 1. Card Header -->
-
-                    <div class="card-header">
-
-                        <div class="card-title-group">
-
-                            <h2>Priced Round</h2>
-
-                            <p class="card-subtext">
-
-                                Configure your financing terms
-
-                            </p>
-
-                        </div>
-
-                        <button class="btn btn-primary" onclick="addRow('series')">
-                            + Add
-                        </button>
-
-                    </div>
-
-
-
-                    <div class="section-divider"></div>
-
-
-
-                    <!-- 2. Top Input Row (User-editable inputs ONLY) -->
-
-                    <div class="priced-round-inputs">
-
-                        <div class="input-group">
-
-                            <label class="detail-label">Round name</label>
-
+                        <div class="input-group mb-24">
+                            <label class="field-label">Round Name</label>
                             <input class="input" value="Series A" onchange="updateGlobal('roundName', this.value)" />
-
                         </div>
-
-                        <div class="input-group">
-
-                            <label class="detail-label">Pre-money valuation ($)</label>
-
-                            <input class="input" type="text" id="pre-money-input" value="$0" onfocus="this.select()"
-                                oninput="formatInputLive(this, true)" onchange="updateGlobal('preMoney', this.value)" />
-
+                        <div class="investors-header">
+                            <h3>Round Investors</h3>
+                            <button class="btn btn-primary" onclick="addRow('series')">+ Add</button>
                         </div>
-
-                    </div>
-
-
-
-                    <div class="section-divider"></div>
-
-
-
-                    <!-- 3. Investor Section (Table Layout) -->
-
-                    <div class="input-table-replacement" id="series-container">
-                        <div class="input-header">
-                            <div class="col-name">Investor</div>
-                            <div class="col-inv">Investment</div>
-                            <div class="col-actions"></div>
-                        </div>
-                        <div id="series-body">
-                            <!-- JS rendered as divs -->
-                        </div>
-                    </div>
-
-
-
-                    <!-- 3. Option Pool Section -->
-
-                    <div class="option-pool-section">
-
-                        <div class="option-pool-left">
-
-                            <label class="detail-label">Target option pool (post-round)</label>
-
-                            <div class="percentage-input-wrapper">
-
-                                <input class="input compact-input" type="text" id="target-options-input" value="10"
-                                    oninput="formatInputLive(this, false)"
-                                    onchange="updateGlobal('targetOptionsPool', this.value)" />
-
-                                <span class="percentage-suffix">%</span>
-
+                        <div id="series-container">
+                            <div class="investors-table-header">
+                                <div class="flex-2">Investor</div>
+                                <div class="flex-1">Investment</div>
+                                <div class="w-32"></div>
                             </div>
-
+                            <div id="series-body"></div>
                         </div>
-
-                        <div class="option-pool-summary-panel">
-
-                            <div class="summary-line">
-
-                                <span class="summary-label">Current unallocated pool:</span>
-
-                                <span class="summary-value" id="current-esop-val">750,000</span>
-
+                        <div class="valuation-summary-strip">
+                            <div class="valuation-item">
+                                <span class="valuation-label">Round PPS</span>
+                                <span class="valuation-value" id="round-pps-val">$0.00</span>
                             </div>
-
-                            <div class="summary-line">
-
-                                <span class="summary-label">Added pool shares:</span>
-
-                                <span class="summary-value summary-value-primary" id="additional-options-val">0</span>
-
+                            <div class="valuation-item">
+                                <span class="valuation-label">Post-money valuation</span>
+                                <span class="valuation-value" id="post-money-val">$0.00</span>
                             </div>
-
-                            <div class="summary-line summary-line-muted">
-
-                                <span>New investors get
-
-                                    <span id="new-investors-shares-val">0</span> shares</span>
-
-                            </div>
-
                         </div>
+                    </section>
+                </div>
+            </div>
 
-                    </div>
-
-
-
-                    <div class="section-divider"></div>
-
-
-
-                    <!-- 4. Derived Valuation Summary Strip (Read-only Pricing Outputs) -->
-
-                    <div class="valuation-summary-strip">
-
-                        <div class="valuation-item">
-
-                            <span class="valuation-label">Round PPS</span>
-
-                            <span class="valuation-value" id="round-pps-val">$0.00</span>
-
-                        </div>
-
-                        <div class="valuation-item">
-
-                            <span class="valuation-label">Post-money valuation</span>
-
-                            <span class="valuation-value" id="post-money-val">$0.00</span>
-
-                        </div>
-
-                    </div>
-
-                </section>
-            </div> <!-- End Calculator Shell -->
-        </div> <!-- End Calculator Column -->
-
-        <div class="results-column"> <!-- Right Side -->
-            <!-- Section 4: Results Card (Summary + Charts) -->
+        <div class="results-column">
             <section id="results-card">
                 <div class="card-header">
                     <div class="card-title-group">
                         <h2>Results</h2>
                     </div>
                 </div>
-
                 <div class="results-summary-row">
                     <div class="result-tile">
                         <div class="result-tile-label">Total post-round shares</div>
@@ -349,85 +134,51 @@
                         <div id="founder-dilution-val" class="result-tile-value">0.00%</div>
                     </div>
                 </div>
-
                 <div class="results-charts-row">
                     <div class="chart-column">
                         <div class="chart-title">Ownership split</div>
-                        <div id="pie-chart-container" class="donut-container">
-                            <!-- Donut chart rendered here -->
-                        </div>
+                        <div id="pie-chart-container" class="donut-container"></div>
                     </div>
                     <div class="chart-column">
                         <div class="chart-title">Founder dilution (pre vs post)</div>
-                        <div id="bar-chart-container" class="bar-chart-container">
-                            <!-- Bar chart rendered here -->
-                        </div>
-                    
+                        <div id="bar-chart-container" class="bar-chart-container"></div>
                     </div>
                 </div>
             </section>
-
-            <!-- Section 5: AI Equity Advisor -->
             <section id="ai-advisor-section">
                 <div class="card-header">
                     <div class="card-title-group">
                         <h2>AI Equity Advisor</h2>
-                        <p class="card-subtext">
-                            Analyzes your inputs and surfaces important observations,
-                            assumptions, or potential risks.
-                        </p>
+                        <p class="card-subtext">Analyzes your inputs and surfaces important observations, assumptions, or potential risks.</p>
                     </div>
                 </div>
                 <div class="ai-insights-box">
-                    <div id="ai-insights-container" class="ai-insights-content">
-                        <!-- JS rendered insights -->
-                    </div>
+                    <div id="ai-insights-container" class="ai-insights-content"></div>
                 </div>
             </section>
-
-            <!-- Section 6: Ownership Breakdown -->
             <section id="breakdown-section">
-                <div class="card-header">
-                    <div class="card-title-group">
-                        <h2>Ownership breakdown</h2>
+                <div class="table-container">
+                    <p class="subsection-title">Ownership Breakdown</p>
+                    <div class="table-wrapper-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th class="col-name">Category</th>
+                                    <th>Shares (Pre)</th>
+                                    <th>Shares (Post)</th>
+                                    <th>% (Pre)</th>
+                                    <th>% (Post)</th>
+                                    <th class="hide-on-mobile">PPS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="post-round-table"></tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="table-container">
-                    <table class="results-table">
-                        <thead>
-                            <tr>
-                                <th class="col-name" style="text-align: left;">Category</th>
-                                <th class="text-right">Shares (Pre)</th>
-                                <th class="text-right">Shares (Post)</th>
-                                <th class="text-right">% (Pre)</th>
-                                <th class="text-right">% (Post)</th>
-                                <th class="text-right">PPS</th>
-                            </tr>
-                        </thead>
-                        <tbody id="post-round-table">
-                            <!-- JS rendered -->
-                        </tbody>
-                    </table>
-                </div>
             </section>
-               
-                </div> <!-- End Results Column -->
-        </main>
-
-    </div>
-
-
-
-    <script src="script.js"></script>
-
-
-
-    <!-- Global Footer -->
-
-
-
+        </div>
+    </main>
+</div>
+<script src="script.js"></script>
 </body>
-
-
-
 </html>

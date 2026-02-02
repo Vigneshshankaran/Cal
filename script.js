@@ -1,5 +1,3 @@
-
-
 const CapTableRowType = {
     Common: "common",           
     Safe: "safe",               
@@ -95,9 +93,9 @@ const formatInputLive = (input, isCurrency = false) => {
         // Remove everything except digits
         let digits = value.replace(/\D/g, "");
         if (digits === "") {
-            input.value = "$0";
+            input.value = "0";
         } else {
-            input.value = formatUSDWithCommas(parseInt(digits));
+            input.value = formatNumberWithCommas(parseInt(digits));
         }
     } else {
         // Remove everything except digits
@@ -218,436 +216,145 @@ const safeConvert = (safe, preShares, postShares, pps) => {
 
 };
 
-const sumSafeConvertedShares = (
-
-    safes,
-
-    pps,
-
-    preMoneyShares,
-
-    postMoneyShares,
-
-    roundingStrategy
-
-) => {
-
+const sumSafeConvertedShares = (safes, pps, preMoneyShares, postMoneyShares, roundingStrategy) => {
     return safes.reduce((acc, safe) => {
-
         const discountPPS = roundPPSToPlaces(
-
             safeConvert(safe, preMoneyShares, postMoneyShares, pps),
-
             roundingStrategy.roundPPSPlaces
-
         );
-
         const postSafeShares = safe.investment / discountPPS;
-
         return acc + roundShares(postSafeShares, roundingStrategy);
-
     }, 0);
-
 };
 
 const checkSafeNotesForErrors = (safeNotes) => {
-
     let ownershipError = undefined;
-
     safeNotes.forEach((safe) => {
-
         if (safe.investment >= safe.cap && safe.cap !== 0) {
-
             ownershipError = {
-
                 type: "error",
-
-                reason:
-
-                    "Investment cannot utilize the entire Cap (Investment >= Cap). This is mathematically impossible for a Pre-money SAFE model.",
-
+                reason: "Investment cannot utilize the entire Cap (Investment >= Cap). This is mathematically impossible for a Pre-money SAFE model.",
             };
-
         }
-
     });
-
     return ownershipError;
-
 };
 
 const calculatePreAndPostMoneyShares = (
-
     preMoneyValuation,
-
     commonShares,
-
     unusedOptions,
-
     targetOptionsPct,
-
     seriesInvestments,
-
     totalShares,
-
     roundingStrategy = DEFAULT_ROUNDING_STRATEGY
-
 ) => {
-
-    let optionsPool = roundShares(
-
-        totalShares * (targetOptionsPct / 100),
-
-        roundingStrategy
-
-    );
-
+    let optionsPool = roundShares(totalShares * (targetOptionsPct / 100), roundingStrategy);
     if (optionsPool < unusedOptions) optionsPool = unusedOptions;
-
     const increaseInOptionsPool = optionsPool - unusedOptions;
-
     const seriesInvestmentTotal = seriesInvestments.reduce((a, b) => a + b, 0);
-
-    const pps =
-
-        totalShares > 0
-
-            ? roundPPSToPlaces(
-
-                (preMoneyValuation + seriesInvestmentTotal) / totalShares,
-
-                roundingStrategy.roundPPSPlaces
-
-            )
-
-            : 0;
-
-    const seriesShares =
-
-        pps > 0
-
-            ? seriesInvestments.reduce(
-
-                (acc, inv) => acc + roundShares(inv / pps, roundingStrategy),
-
-                0
-
-            )
-
-            : 0;
-
+    const pps = totalShares > 0
+        ? roundPPSToPlaces((preMoneyValuation + seriesInvestmentTotal) / totalShares, roundingStrategy.roundPPSPlaces)
+        : 0;
+    const seriesShares = pps > 0
+        ? seriesInvestments.reduce((acc, inv) => acc + roundShares(inv / pps, roundingStrategy), 0)
+        : 0;
     const preMoneyShares = commonShares + unusedOptions + increaseInOptionsPool;
-
     const postMoneyShares = totalShares - seriesShares - increaseInOptionsPool;
 
     return {
-
         preMoneyShares,
-
         postMoneyShares,
-
         pps,
-
         optionsPool,
-
         increaseInOptionsPool,
-
         totalShares: postMoneyShares + increaseInOptionsPool + seriesShares,
-
         seriesShares,
-
         totalSeriesInvestment: seriesInvestmentTotal,
-
     };
-
 };
 
-const attemptFit = (
-
-    preMoneyValuation,
-
-    commonShares,
-
-    unusedOptions,
-
-    targetOptionsPct,
-
-    safes,
-
-    seriesInvestments,
-
-    totalShares,
-
-    roundingStrategy = DEFAULT_ROUNDING_STRATEGY
-
-) => {
-
-    const results = calculatePreAndPostMoneyShares(
-
-        preMoneyValuation,
-
-        commonShares,
-
-        unusedOptions,
-
-        targetOptionsPct,
-
-        seriesInvestments,
-
-        totalShares,
-
-        roundingStrategy
-
-    );
-
-    const safeShares = sumSafeConvertedShares(
-
-        safes,
-
-        results.pps,
-
-        results.preMoneyShares,
-
-        results.postMoneyShares,
-
-        roundingStrategy
-
-    );
-
+const attemptFit = (preMoneyValuation, commonShares, unusedOptions, targetOptionsPct, safes, seriesInvestments, totalShares, roundingStrategy = DEFAULT_ROUNDING_STRATEGY) => {
+    const results = calculatePreAndPostMoneyShares(preMoneyValuation, commonShares, unusedOptions, targetOptionsPct, seriesInvestments, totalShares, roundingStrategy);
+    const safeShares = sumSafeConvertedShares(safes, results.pps, results.preMoneyShares, results.postMoneyShares, roundingStrategy);
     return results.seriesShares + commonShares + results.optionsPool + safeShares;
-
 };
 
-const fitConversion = (
-
-    preMoneyValuation,
-
-    commonShares,
-
-    safes,
-
-    unusedOptions,
-
-    targetOptionsPct,
-
-    seriesInvestments,
-
-    roundingStrategy = DEFAULT_ROUNDING_STRATEGY
-
-) => {
-
+const fitConversion = (preMoneyValuation, commonShares, safes, unusedOptions, targetOptionsPct, seriesInvestments, roundingStrategy = DEFAULT_ROUNDING_STRATEGY) => {
     let totalShares = commonShares + unusedOptions;
-
     let lastTotalShares = totalShares;
-
     for (let i = 0; i < 100; i++) {
-
-        totalShares = attemptFit(
-
-            preMoneyValuation,
-
-            commonShares,
-
-            unusedOptions,
-
-            targetOptionsPct,
-
-            safes,
-
-            seriesInvestments,
-
-            totalShares,
-
-            roundingStrategy
-
-        );
-
+        totalShares = attemptFit(preMoneyValuation, commonShares, unusedOptions, targetOptionsPct, safes, seriesInvestments, totalShares, roundingStrategy);
         if (totalShares === lastTotalShares) break;
-
         lastTotalShares = totalShares;
-
     }
-
-    const res = calculatePreAndPostMoneyShares(
-
-        preMoneyValuation,
-
-        commonShares,
-
-        unusedOptions,
-
-        targetOptionsPct,
-
-        seriesInvestments,
-
-        totalShares,
-
-        roundingStrategy
-
-    );
-
+    const res = calculatePreAndPostMoneyShares(preMoneyValuation, commonShares, unusedOptions, targetOptionsPct, seriesInvestments, totalShares, roundingStrategy);
     const ppss = safes.map((safe) =>
-
-        roundPPSToPlaces(
-
-            safeConvert(safe, res.preMoneyShares, res.postMoneyShares, res.pps),
-
-            roundingStrategy.roundPPSPlaces
-
-        )
-
+        roundPPSToPlaces(safeConvert(safe, res.preMoneyShares, res.postMoneyShares, res.pps), roundingStrategy.roundPPSPlaces)
     );
-
-    const convertedSafeShares = sumSafeConvertedShares(
-
-        safes,
-
-        res.pps,
-
-        res.preMoneyShares,
-
-        res.postMoneyShares,
-
-        roundingStrategy
-
-    );
-
+    const convertedSafeShares = sumSafeConvertedShares(safes, res.pps, res.preMoneyShares, res.postMoneyShares, roundingStrategy);
     const totalSeriesInvestment = seriesInvestments.reduce((a, b) => a + b, 0);
 
     return {
-
         ...res,
-
         ppss,
-
         totalShares,
-
         newSharesIssued: totalShares - commonShares - unusedOptions,
-
         convertedSafeShares,
-
         totalOptions: res.increaseInOptionsPool + unusedOptions,
-
         additionalOptions: res.increaseInOptionsPool,
-
-        totalInvested:
-
-            totalSeriesInvestment +
-
-            safes.reduce((acc, safe) => acc + safe.investment, 0),
-
+        totalInvested: totalSeriesInvestment + safes.reduce((acc, safe) => acc + safe.investment, 0),
         totalSeriesInvestment,
-
     };
-
 };
 
 const buildTBDPreRoundCapTable = (safeNotes, common) => {
-
-    const totalInvestment = safeNotes.reduce(
-
-        (acc, investor) => acc + investor.investment,
-
-        0
-
-    );
-
+    const totalInvestment = safeNotes.reduce((acc, investor) => acc + investor.investment, 0);
     const totalShares = common.reduce((acc, c) => acc + c.shares, 0);
-
     const reason = "Unable to model Pre-Round cap table with uncapped SAFE's";
-
     return {
-
         common: common.map((c) => ({
-
             ...c,
-
             ownershipPct: 0,
-
             ownershipError: { type: "tbd", reason },
-
         })),
-
         safes: safeNotes.map((s) => ({
-
             ...s,
-
             ownershipError: { type: "tbd", reason },
-
             type: CapTableRowType.Safe,
-
         })),
-
         total: {
-
             name: "Total",
-
             shares: totalShares,
-
             investment: totalInvestment,
-
             ownershipPct: 1,
-
             type: CapTableRowType.Total,
-
         },
-
     };
-
 };
 
 const buildErrorPreRoundCapTable = (safeNotes, common) => {
-
-    const totalInvestment = safeNotes.reduce(
-
-        (acc, investor) => acc + investor.investment,
-
-        0
-
-    );
-
+    const totalInvestment = safeNotes.reduce((acc, investor) => acc + investor.investment, 0);
     const totalShares = common.reduce((acc, c) => acc + c.shares, 0);
-
     return {
-
         common: common.map((c) => ({
-
             ...c,
-
             ownershipPct: 0,
-
             ownershipError: { type: "error" },
-
         })),
-
         safes: safeNotes.map((s) => {
-
             const error = { type: "error" };
-
-            if (s.investment >= s.cap && s.cap !== 0)
-
-                error.reason = "SAFE's investment cannot equal or exceed the Cap";
-
+            if (s.investment >= s.cap && s.cap !== 0) error.reason = "SAFE's investment cannot equal or exceed the Cap";
             return { ...s, ownershipError: error, type: CapTableRowType.Safe };
-
         }),
-
         total: {
-
             name: "Total",
-
             shares: totalShares,
-
             investment: totalInvestment,
-
             ownershipPct: 1,
-
             type: CapTableRowType.Total,
-
         },
-
     };
-
 };
 
 const buildStrictlyPreRoundCapTable = (rowData) => {
@@ -1102,24 +809,17 @@ const updateUI = () => {
             roundPpsEl.textContent = safeFormatPPS(pricedConversion.pps);
 
         const postMoneyVal = pricedConversion.totalShares * pricedConversion.pps;
-
         const postMoneyEl = document.getElementById("post-money-val");
-
         if (postMoneyEl) postMoneyEl.textContent = safeFormatCurrency(postMoneyVal);
+        
+        const postMoneyDisplayEl = document.getElementById("post-money-val-display");
+        if (postMoneyDisplayEl) postMoneyDisplayEl.textContent = safeFormatCurrency(postMoneyVal);
 
-        const additionalOptionsEl = document.getElementById(
+        const additionalOptionsEl = document.getElementById("additional-options-val");
+        if (additionalOptionsEl) additionalOptionsEl.textContent = safeFormatNumber(pricedConversion.additionalOptions);
 
-            "additional-options-val"
-
-        );
-
-        if (additionalOptionsEl)
-
-            additionalOptionsEl.textContent = safeFormatNumber(
-
-                pricedConversion.additionalOptions
-
-            );
+        const additionalOptionsTextEl = document.getElementById("additional-options-val-text");
+        if (additionalOptionsTextEl) additionalOptionsTextEl.textContent = `+${safeFormatNumber(pricedConversion.additionalOptions)} shares will be added to reach target`;
 
         const newInvestorsSharesEl = document.getElementById(
 
@@ -1218,54 +918,46 @@ const updateUI = () => {
 const renderShareholders = (totalSharesS0) => {
     const container = document.getElementById("shareholders-body");
     container.innerHTML = "";
-    const categories = [
-        "Founder",
-        "ESOP Pool (granted)",
-        "ESOP Pool (unallocated)",
-        "Investor",
-        "Other",
-    ];
-
+    const categories = ["Founder", "ESOP Pool (granted)", "ESOP Pool (unallocated)", "Investor", "Other"];
     const shareholders = state.rowData.filter((r) => r.type === CapTableRowType.Common);
     
     shareholders.forEach((row) => {
         const ownershipPct = totalSharesS0 > 0 ? row.shares / totalSharesS0 : NaN;
         const pctText = safeFormatPercent(ownershipPct);
-        
         const card = document.createElement("div");
         card.className = "input-row-card";
         card.innerHTML = `
-            <div style="display: flex; gap: 1rem; align-items: center;">
-                <input class="input" style="flex: 1;" value="${row.name}" placeholder="Name" onchange="updateRow('${row.id}', 'name', this.value)">
-                <button class="btn-trash" style="opacity: 0.3;" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>
+            <div class="row-card-header">
+                <input class="input flex-1" value="${row.name}" placeholder="Name" onchange="updateRow('${row.id}', 'name', this.value)">
+                <button class="btn-trash row-trash-btn" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>
             </div>
-            
-            <div style="display: flex; gap: 0.75rem; align-items: center;">
-                <div style="width: 25%;">
-                    <select class="select" onchange="updateRow('${row.id}', 'category', this.value)">
-                        ${categories
-                            .map(
-                                (cat) =>
-                                    `<option value="${cat}" ${row.category === cat ? "selected" : ""}>${cat}</option>`
-                            )
-                            .join("")}
+            <div class="row-card-grid-shareholder">
+                <div>
+                    <label class="field-label row-field-label">Category</label>
+                    <select class="select row-select" onchange="updateRow('${row.id}', 'category', this.value)">
+                        ${categories.map(cat => `<option value="${cat}" ${row.category === cat ? "selected" : ""}>${cat}</option>`).join("")}
                     </select>
                 </div>
-                
-                <div style="flex: 1; display: flex; align-items: center;">
-                    <input class="input" style="text-align: right;" type="text" value="${formatNumberWithCommas(row.shares)}" 
-                        oninput="formatInputLive(this, false)" onchange="updateRow('${row.id}', 'shares', this.value)">
-                    <span class="field-label-inline">shares</span>
+                <div>
+                    <label class="field-label row-field-label">Shares</label>
+                    <div class="flex items-center">
+                        <input class="input row-input-right" type="text" value="${formatNumberWithCommas(row.shares)}" 
+                            oninput="formatInputLive(this, false)" onchange="updateRow('${row.id}', 'shares', this.value)">
+                        <span class="input-suffix">shares</span>
+                    </div>
                 </div>
-
-                <div style="width: 80px; text-align: right; background: #F8FAFC; border-radius: 8px; padding: 0.5rem; font-size: 0.8125rem; color: #64748B; font-weight: 500;">
-                    ${pctText}
-                </div>
+                <div class="pct-badge badge-fixed-height">${pctText}</div>
             </div>
         `;
-
         container.appendChild(card);
     });
+
+    const footer = document.getElementById("cap-table-footer");
+    footer.className = "card-footer-total";
+    footer.innerHTML = `
+        <span>Total fully diluted shares</span>
+        <span class="footer-total-value">${formatNumberWithCommas(totalSharesS0)}</span>
+    `;
 };
 
 const renderSAFEs = () => {
@@ -1273,46 +965,65 @@ const renderSAFEs = () => {
     if (!container) return;
     container.innerHTML = "";
     const safeRows = state.rowData.filter((r) => r.type === CapTableRowType.Safe);
-    const showTrash = safeRows.length > 1;
+    let totalInv = 0;
     
-    safeRows.forEach((row, index) => {
+    safeRows.forEach((row) => {
+        totalInv += row.investment;
         const card = document.createElement("div");
         card.className = "input-row-card";
         card.innerHTML = `
-            <div style="display: flex; gap: 1rem; align-items: center;">
-                <input class="input" style="flex: 1;" value="${row.name}" placeholder="Investor Name" onchange="updateRow('${row.id}', 'name', this.value)" />
-                ${showTrash ? `<button class="btn-trash" style="opacity: 0.3;" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>` : ""}
+            <div class="safe-card-header">
+                <input class="input safe-name-input" value="${row.name}" placeholder="New SAFE" onchange="updateRow('${row.id}', 'name', this.value)" />
+                <button class="btn-trash row-trash-btn" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>
             </div>
-            
-            <div style="display: grid; grid-template-columns: 1.5fr 1.5fr 1fr 1.2fr; gap: 0.75rem; align-items: center;">
-                <div style="display: flex; align-items: center;">
-                    <input class="input" style="text-align: right;" type="text" value="${formatUSDWithCommas(row.investment)}" 
-                        oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'investment', this.value)" />
-                    <span class="field-label-inline">$</span>
-                </div>
-                
-                <div style="display: flex; align-items: center;">
-                    <input class="input" style="text-align: right;" type="text" value="${formatUSDWithCommas(row.cap)}" 
-                        oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'cap', this.value)" />
-                    <span class="field-label-inline">cap</span>
-                </div>
-                
-                <div style="display: flex; align-items: center;">
-                    <div class="percentage-input-wrapper">
-                        <input class="input" style="text-align: right; border-right: none; border-top-right-radius: 0; border-bottom-right-radius: 0;" type="text" value="${Math.round(row.discount * 100)}" 
-                            oninput="formatInputLive(this, false)" onchange="updateRow('${row.id}', 'discount', this.value)" />
-                        <span class="percentage-suffix">%</span>
+            <div class="row-card-grid-safe">
+                <div>
+                    <label class="field-label">Investment</label>
+                    <div class="input-with-symbol">
+                        <span class="input-symbol">$</span>
+                        <input class="input row-input-right" type="text" value="${formatNumberWithCommas(row.investment)}" 
+                            oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'investment', this.value)" />
                     </div>
                 </div>
-                
-                <select class="select" onchange="updateRow('${row.id}', 'conversionType', this.value)">
-                    <option value="post" ${row.conversionType === "post" ? "selected" : ""}>Post-money</option>
-                    <option value="pre" ${row.conversionType === "pre" ? "selected" : ""}>Pre-money</option>
-                </select>
+                <div>
+                    <label class="field-label">Valuation Cap</label>
+                    <div class="input-with-symbol">
+                        <span class="input-symbol">$</span>
+                        <input class="input row-input-right" type="text" value="${formatNumberWithCommas(row.cap)}" 
+                            oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'cap', this.value)" />
+                    </div>
+                </div>
+                <div>
+                    <label class="field-label">Discount</label>
+                    <div class="safe-discount-group">
+                        <input class="input safe-discount-input" type="text" value="${Math.round(row.discount * 100)}" 
+                            oninput="formatInputLive(this, false)" onchange="updateRow('${row.id}', 'discount', this.value)" />
+                        <span class="input-suffix mr-8">%</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="field-label">Type</label>
+                    <select class="select row-select" onchange="updateRow('${row.id}', 'conversionType', this.value)">
+                        <option value="post" ${row.conversionType === "post" ? "selected" : ""}>Post-money</option>
+                        <option value="pre" ${row.conversionType === "pre" ? "selected" : ""}>Pre-money</option>
+                    </select>
+                </div>
             </div>
         `;
         container.appendChild(card);
     });
+
+    const safesSection = document.getElementById("safes-container").parentElement;
+    let totalRow = safesSection.querySelector(".card-footer-total");
+    if (!totalRow) {
+        totalRow = document.createElement("div");
+        totalRow.className = "card-footer-total";
+        safesSection.appendChild(totalRow);
+    }
+    totalRow.innerHTML = `
+        <span>Total SAFE investment</span>
+        <span class="footer-total-value">${formatUSDWithCommas(totalInv)}</span>
+    `;
 };
 
 const renderSeriesInvestors = () => {
@@ -1320,23 +1031,35 @@ const renderSeriesInvestors = () => {
     if (!container) return;
     container.innerHTML = "";
     const seriesInvestors = state.rowData.filter((r) => r.type === CapTableRowType.Series);
-    seriesInvestors.forEach((row, index) => {
+    let totalInv = 0;
+    
+    seriesInvestors.forEach((row) => {
+        totalInv += row.investment;
         const card = document.createElement("div");
-        card.className = "input-row-card";
+        card.className = "series-investor-row";
         card.innerHTML = `
-            <div style="display: flex; gap: 1rem; align-items: center;">
-                <input class="input" style="flex: 1;" value="${row.name}" placeholder="Investor Name" onchange="updateRow('${row.id}', 'name', this.value)">
-                <button class="btn-trash" style="opacity: 0.3;" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>
-            </div>
-            
-            <div style="display: flex; align-items: center; width: 50%;">
-                <input class="input" style="text-align: right;" type="text" value="${formatUSDWithCommas(row.investment)}" 
+            <input class="input flex-2" value="${row.name}" placeholder="Name" onchange="updateRow('${row.id}', 'name', this.value)">
+            <div class="input-with-symbol flex-1">
+                <span class="input-symbol">$</span>
+                <input class="input series-investor-input" type="text" value="${formatNumberWithCommas(row.investment)}" 
                     oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'investment', this.value)">
-                <span class="field-label-inline">$</span>
             </div>
+            <button class="btn-trash row-trash-btn" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>
         `;
         container.appendChild(card);
     });
+
+    const seriesSection = document.getElementById("series-container").parentElement;
+    let totalRow = seriesSection.querySelector(".card-footer-total-series");
+    if (!totalRow) {
+        totalRow = document.createElement("div");
+        totalRow.className = "card-footer-total card-footer-total-series";
+        seriesSection.appendChild(totalRow);
+    }
+    totalRow.innerHTML = `
+        <span>Total raising</span>
+        <span class="footer-total-value">${formatUSDWithCommas(totalInv)}</span>
+    `;
 };
 
 const getRowData = (data) => {
@@ -1569,31 +1292,27 @@ const renderBreakdownTable = (preData, postData, pps) => {
         }
 
         const tr = document.createElement("tr");
+        tr.className = "group";
 
         tr.innerHTML = `
-
         <td class="col-name">
-
-            ${displayName}
-
-            ${tagsHtml}
-
+            <div class="flex-cell-content">
+                <span class="font-medium text-dark">${displayName}</span>
+                ${tagsHtml}
+            </div>
         </td>
 
-        <td class="text-right pre-value">${safeFormatNumber(pre.shares)}</td>
+        <td class="text-right text-muted">${safeFormatNumber(pre.shares)}</td>
 
-        <td class="text-right post-value">${safeFormatNumber(post.shares)}</td>
+        <td class="text-right font-medium text-dark">${safeFormatNumber(post.shares)}</td>
 
-        <td class="text-right pre-value">${prePctLabel}</td>
+        <td class="text-right text-muted">${prePctLabel}</td>
 
-        <td class="text-right post-value">${postPctLabel}</td>
+        <td class="text-right font-medium text-brand">${postPctLabel}</td>
 
-        <td class="text-right hide-on-mobile">${safeFormatPPS(
-
+        <td class="text-right text-muted hide-on-mobile">${safeFormatPPS(
             post.pps_val
-
         )}</td>
-
     `;
 
         container.appendChild(tr);
@@ -1601,18 +1320,15 @@ const renderBreakdownTable = (preData, postData, pps) => {
     });
 
     const totalTr = document.createElement("tr");
-
-    totalTr.style.fontWeight = "500";
-    totalTr.style.backgroundColor = "rgba(250, 250, 250, 1)";
-    totalTr.style.borderBottom = "0.56px solid rgba(233, 234, 235, 1)";
+    totalTr.className = "total-row"; 
+    totalTr.style.fontWeight = "600";
+    totalTr.style.backgroundColor = "var(--slate-50)";
 
     const prePctLabel = preSharesValid ? "100.00%" : "—";
-
     const postPctLabel = postSharesValid ? "100.00%" : "—";
 
     totalTr.innerHTML = `
-
-        <td>Total</td>
+        <td class="col-name" style="display: table-cell;">Total</td>
 
         <td class="text-right pre-value">${safeFormatNumber(
 
@@ -1620,7 +1336,7 @@ const renderBreakdownTable = (preData, postData, pps) => {
 
     )}</td>
 
-        <td class="text-right post-value">${safeFormatNumber(
+        <td class="text-right post-value post-shares-value">${safeFormatNumber(
 
         postData.total.shares
 
@@ -1628,7 +1344,7 @@ const renderBreakdownTable = (preData, postData, pps) => {
 
         <td class="text-right pre-value">${prePctLabel}</td>
 
-        <td class="text-right post-value">${postPctLabel}</td>
+        <td class="text-right post-value post-pct-value">${postPctLabel}</td>
 
         <td class="text-right"></td>
 
@@ -1648,42 +1364,22 @@ const renderPieChart = (postRound) => {
     }
 
     container.innerHTML = `
-        <div class="pie-chart-wrapper">
-            <div class="canvas-box">
-                <canvas id="pieChartCanvas"></canvas>
-            </div>
-            <div id="pie-chart-legend" class="legend-box">
-                <!-- Custom legend items added here -->
-            </div>
+        <div class="chart-wrapper-pie">
+            <canvas id="pieChartCanvas"></canvas>
         </div>
     `;
 
     const totalShares = postRound?.total?.shares || 0;
     if (totalShares <= 0) return;
 
-    const formatValue = (val) => {
-        return typeof formatNumberWithCommas === "function"
-            ? formatNumberWithCommas(val)
-            : val.toLocaleString();
-    };
-
     const rowData = getRowData(postRound);
     if (!rowData.length) return;
 
     const labels = rowData.map(r => r.name);
     const data = rowData.map(r => r.shares);
-
     const backgroundColors = [
-        "#6366F1", // Indigo
-        "#8B5CF6", // Violet
-        "#10B981", // Emerald
-        "#F59E0B", // Amber
-        "#3B82F6", // Blue
-        "#EC4899", // Pink
-        "#F97316", // Orange
-        "#14B8A6", // Teal
-        "#EF4444", // Red
-        "#64748B"  // Slate
+        "#A855F7", "#6366F1", "#3B82F6", "#06B6D4", "#10B981",
+        "#84CC16", "#EAB308", "#F97316", "#4F46E5", "#64748B"
     ];
 
     const canvas = document.getElementById("pieChartCanvas");
@@ -1696,195 +1392,83 @@ const renderPieChart = (postRound) => {
             datasets: [{
                 data,
                 backgroundColor: backgroundColors,
-                borderWidth: 1,
+                borderWidth: 2,
                 borderColor: "#ffffff",
-                hoverOffset: 12,
+                hoverOffset: 4
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true, 
-            aspectRatio: 1, // Keep it perfectly circular
-            cutout: "70%",
-            animation: {
-                duration: 900,
-                easing: "easeOutQuart"
-            },
-            layout: {
-                padding: 0
-            },
+            maintainAspectRatio: false,
+            cutout: "60%",
             plugins: {
                 legend: {
-                    display: false // We use our custom HTML legend instead
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 5,
+                        boxHeight: 5,
+                        borderRadius: 5,
+                        usePointStyle: true,
+                        color: "rgba(74, 67, 64, 1)",
+                        font: { 
+                            size: 10, 
+                            family: "'Inter', sans-serif", 
+                            weight: 400,
+                            lineHeight: 1.33 
+                        },
+                        padding: 15,
+                        generateLabels: (chart) => {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                                return data.labels.map((label, i) => {
+                                    const value = data.datasets[0].data[i];
+                                    const percentage = ((value / totalShares) * 100).toFixed(1);
+                                    // Hide legend item if share < 0.5% to avoid clutter
+                                    if (value / totalShares < 0.005) return null;
+                                    return {
+                                        text: `${label} (${percentage}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        pointStyle: 'circle',
+                                        hidden: false,
+                                        index: i
+                                    };
+                                }).filter(item => item !== null);
+                            }
+                            return [];
+                        }
+                    },
+                    onHover: (event, legendItem, legend) => {
+                        if (legend.chart.canvas) legend.chart.canvas.style.cursor = 'pointer';
+                    },
+                    onLeave: (event, legendItem, legend) => {
+                        if (legend.chart.canvas) legend.chart.canvas.style.cursor = 'default';
+                    }
                 },
                 tooltip: {
-                    backgroundColor: "rgba(0, 0, 0, 0.9)",
+                    enabled: true,
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
                     padding: 12,
-                    cornerRadius: 4,
-                    titleFont: { family: "Inter, sans-serif", size: 12, weight: "600" },
-                    bodyFont: { family: "Inter, sans-serif", size: 11 },
-                    displayColors: true,
+                    cornerRadius: 8,
+                    titleFont: { size: 13, weight: '600', family: "'Inter', sans-serif" },
+                    bodyFont: { size: 12, family: "'Inter', sans-serif" },
                     callbacks: {
-                        label(ctx) {
-                            const value = ctx.raw;
-                            const percent = ((value / totalShares) * 100).toFixed(1);
-                            return `${formatValue(value)} shares (${percent}%)`;
+                        label: (context) => {
+                            const value = context.raw;
+                            const percentage = ((value / totalShares) * 100).toFixed(1);
+                            return ` Shares: ${formatNumberWithCommas(value)} (${percentage}%)`;
                         }
                     }
                 }
+            },
+            layout: {
+                padding: { top: 10, bottom: 10, left: 10, right: 10 }
             }
         }
     });
-
-    // Render custom legend
-    const legendContainer = document.getElementById("pie-chart-legend");
-    if (legendContainer) {
-        legendContainer.innerHTML = rowData.map((row, i) => {
-            const percent = ((row.shares / totalShares) * 100).toFixed(1);
-            return `
-                <div class="custom-legend-row">
-                    <div class="legend-dot" style="width: 12px; height: 12px; background: ${backgroundColors[i % backgroundColors.length]}"></div>
-                    <span class="legend-name" style="font-size: 0.8125rem;">${row.name}</span>
-                    <span class="legend-pct" style="margin-left: auto; font-weight: 700;">${percent}%</span>
-                </div>
-            `;
-        }).join("");
-    }
 };
 
-const old_renderPieChart_removed = () => {
-
-    const totalShares = postRound && postRound.total ? postRound.total.shares : 0;
-
-    if (totalShares <= 0) {
-
-        return;
-
-    }
-
-    const slices = getRowData(postRound).map((row, index) => {
-        const colors = [
-            "var(--color-chart-1)",
-            "var(--color-chart-2)",
-            "var(--color-chart-3)",
-            "var(--color-chart-4)",
-            "var(--color-chart-5)",
-        ];
-        return {
-            ...row,
-            color: colors[index % colors.length],
-        };
-    });
-
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-
-    svg.setAttribute("viewBox", "0 0 100 100");
-
-    svg.setAttribute("class", "chart-svg");
-
-    let currentAngle = 0;
-
-    slices.forEach((slice) => {
-
-        if (slice.shares === 0) return;
-
-        const slicePct = slice.shares / totalShares;
-
-        const sliceAngle = slicePct * 360;
-
-        const x1 = 50 + 40 * Math.cos((Math.PI * (currentAngle - 90)) / 180);
-
-        const y1 = 50 + 40 * Math.sin((Math.PI * (currentAngle - 90)) / 180);
-
-        currentAngle += sliceAngle;
-
-        const x2 = 50 + 40 * Math.cos((Math.PI * (currentAngle - 90)) / 180);
-
-        const y2 = 50 + 40 * Math.sin((Math.PI * (currentAngle - 90)) / 180);
-
-        const largeArcFlag = sliceAngle > 180 ? 1 : 0;
-
-        const pathData =
-            slicePct >= 0.999
-                ? `M 50,10 A 40,40 0 1,1 49.9,10 Z`
-                : `M 50,50 L ${x1},${y1} A 40,40 0 ${largeArcFlag},1 ${x2},${y2} Z`;
-
-        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute("d", pathData);
-        path.setAttribute("fill", slice.color);
-        path.setAttribute("stroke", "var(--white)");
-        path.setAttribute("stroke-width", "2");
-        svg.appendChild(path);
-    });
-
-    const centerCircle = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "circle"
-    );
-    centerCircle.setAttribute("cx", "50");
-    centerCircle.setAttribute("cy", "50");
-    centerCircle.setAttribute("r", "35"); 
-    centerCircle.setAttribute("fill", "white");
-    svg.appendChild(centerCircle);
-
-    const centerText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    centerText.setAttribute("x", "50");
-    centerText.setAttribute("y", "50");
-    centerText.setAttribute("text-anchor", "middle");
-    centerText.setAttribute("dominant-baseline", "middle");
-    centerText.setAttribute("font-family", "Inter, sans-serif");
-
-    const tspanValue = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
-    tspanValue.setAttribute("x", "50");
-    tspanValue.setAttribute("dy", "-0.2em");
-    tspanValue.setAttribute("font-size", "12");
-    tspanValue.setAttribute("font-weight", "700");
-    tspanValue.setAttribute("fill", "var(--text-dark)");
-    tspanValue.textContent = safeFormatNumber(totalShares); 
-
-    const tspanLabel = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
-    tspanLabel.setAttribute("x", "50");
-    tspanLabel.setAttribute("dy", "1.2em");
-    tspanLabel.setAttribute("font-size", "8");
-    tspanLabel.setAttribute("fill", "var(--text-light)");
-    tspanLabel.textContent = "Total Shares";
-
-    centerText.appendChild(tspanValue);
-    centerText.appendChild(tspanLabel);
-    svg.appendChild(centerText);
-
-    container.appendChild(svg);
-
-    const legend = document.createElement("div");
-    legend.className = "donut-legend";
-    slices.forEach((slice) => {
-        if (slice.shares === 0) return;
-        const pctText = safeFormatPercent(slice.ownershipPct);
-        const row = document.createElement("div");
-        row.className = "legend-row";
-        row.innerHTML = `
-            <div class="legend-left">
-                <div class="legend-dot" style="background: ${slice.color}"></div>
-                <span>${slice.name}</span>
-            </div>
-            <span class="legend-pct">${pctText}</span>
-        `;
-        legend.appendChild(row);
-    });
-    container.appendChild(legend);
-
-    const footer = document.createElement("div");
-    footer.className = "chart-footer";
-    footer.innerHTML = `
-        <div class="chart-footer-trend">
-            Trending up by 5.2% this month <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-        </div>
-        <div class="chart-footer-subtext">
-            Showing total ownership distribution
-        </div>
-    `;
-    container.appendChild(footer);
-};
+/* Removed dead old_renderPieChart_removed */
 
 const renderBarChart = (preFounderPct, postFounderPct) => {
     const container = document.getElementById("bar-chart-container");
@@ -1894,7 +1478,11 @@ const renderBarChart = (preFounderPct, postFounderPct) => {
         window.barChartInstance.destroy();
     }
 
-    container.innerHTML = '<canvas id="barChartCanvas"></canvas>';
+    container.innerHTML = `
+        <div class="chart-wrapper-bar">
+            <canvas id="barChartCanvas"></canvas>
+        </div>
+    `;
 
     const preValid = !isNaN(preFounderPct) && isFinite(preFounderPct) && preFounderPct > 0;
     const postValid = !isNaN(postFounderPct) && isFinite(postFounderPct) && postFounderPct > 0;
@@ -1915,145 +1503,128 @@ const renderBarChart = (preFounderPct, postFounderPct) => {
             datasets: [{
                 label: 'Founder Ownership',
                 data: data,
-                backgroundColor: [
-                    "#6366F1", // Indigo
-                    "#10B981"  // Emerald
-                ],
-                barPercentage: 0.45,
-                categoryPercentage: 0.6
+                backgroundColor: ["#6366F1", "#10B981"],
+                barPercentage: 0.5,
+                categoryPercentage: 0.7
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 1, // Square for 250x250
+            maintainAspectRatio: false,
             scales: {
                 y: {
                     beginAtZero: true,
                     max: 100,
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)',
-                        drawBorder: false
-                    },
+                    grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false },
                     ticks: {
                         callback: (value) => value + "%",
-                        font: { size: 12, family: "'Inter', sans-serif" },
-                        color: '#4A4340'
+                        font: { size: 11, family: "'Inter', sans-serif" },
+                        color: '#64748B',
+                        // Hide ticks if container is too small
+                        display: (context) => context.chart.height > 100
                     }
                 },
                 x: {
-                    grid: {
-                        display: false
-                    },
+                    grid: { display: false },
                     ticks: {
-                        font: { size: 13, family: "'Inter', sans-serif", weight: '500' },
-                        color: '#4A4340'
+                        font: { size: 12, family: "'Inter', sans-serif", weight: '500' },
+                        color: '#475569',
+                        // Hide labels if container is too narrow
+                        display: (context) => context.chart.width > 120
                     }
                 }
             },
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
                     padding: 12,
                     cornerRadius: 8,
-                    titleFont: { size: 13, weight: '500' },
-                    bodyFont: { size: 12 },
+                    titleFont: { family: "'Inter', sans-serif" },
+                    bodyFont: { family: "'Inter', sans-serif" },
                     callbacks: {
-                        label: (context) => `${context.dataset.label}: ${context.raw.toFixed(1)}%`
+                        label: (context) => ` Ownership: ${context.raw.toFixed(1)}%`
                     }
                 }
+            },
+            layout: {
+                padding: { top: 20, bottom: 5, left: 10, right: 10 }
             }
         }
     });
 
     // Add summary text below bar chart
     const summaryText = document.createElement("div");
-    summaryText.style.textAlign = "center";
-    summaryText.style.marginTop = "1rem";
-    summaryText.style.fontSize = "0.875rem";
-    summaryText.style.fontWeight = "600";
-    summaryText.style.color = "var(--text-medium)";
+    summaryText.className = "chart-summary-text";
     summaryText.innerHTML = `${(preFounderPct * 100).toFixed(1)}% &rarr; ${(postFounderPct * 100).toFixed(1)}%`;
     container.appendChild(summaryText);
 };
 
+// Global Loading State
+let aiLoadingTimeout = null;
+
 const renderAIAdvisor = (preRound, postRound, pricedConversion, state) => {
-
     const container = document.getElementById("ai-insights-container");
-
     if (!container) return;
 
-    container.innerHTML = "";
+    // Clear any pending timeout to prevent race conditions
+    if (aiLoadingTimeout) clearTimeout(aiLoadingTimeout);
 
     const newMoneyRaised = pricedConversion.totalSeriesInvestment;
-
     const preMoney = state.preMoney;
 
     if (preMoney <= 0 || newMoneyRaised <= 0) {
-
         container.innerHTML = `<p class="card-subtext">Insights will appear once you enter your cap table and round terms.</p>`;
-
         return;
-
     }
 
-    const insights = [];
-
-    const investment = formatUSDWithCommas(newMoneyRaised);
-
-    const preMoneyStr = formatUSDWithCommas(preMoney);
-
-    insights.push(`
-        <div class="insight-item">
-            <div>You are modeling a <strong>${state.roundName}</strong> round raising <strong>${investment}</strong> at a <strong>${preMoneyStr}</strong> pre-money valuation.</div>
+    // Show Skeleton Loader Immediately
+    container.innerHTML = `
+        <div class="ai-skeleton-loader">
+            <div class="ai-skeleton-line" style="width: 100%;"></div>
+            <div class="ai-skeleton-line" style="width: 85%;"></div>
+            <div class="ai-skeleton-line" style="width: 60%;"></div>
         </div>
-    `);
+    `;
 
-    const foundersPost = postRound.common.filter((c) => c.category === "Founder");
-
-    const foundersPre = preRound.common.filter((c) => c.category === "Founder");
-
-    const totalFounderPctPost = foundersPost.reduce(
-
-        (a, f) => a + f.ownershipPct,
-
-        0
-
-    );
-
-    const totalFounderPctPre = foundersPre.reduce(
-
-        (a, f) => a + f.ownershipPct,
-
-        0
-
-    );
-
-    insights.push(`
-        <div class="insight-item">
-            <div>Founder ownership changes from <strong>${safeFormatPercent(totalFounderPctPre)}</strong> pre-round to <strong>${safeFormatPercent(totalFounderPctPost)}</strong> post-round.</div>
-        </div>
-    `);
-
-    if (totalFounderPctPre >= 0.5 && totalFounderPctPost < 0.5) {
+    // Delay actual rendering to simulate "thinking"
+    aiLoadingTimeout = setTimeout(() => {
+        const insights = [];
+        const investment = formatUSDWithCommas(newMoneyRaised);
+        const preMoneyStr = formatUSDWithCommas(preMoney);
         insights.push(`
-            <div class="insight-item">
-                <div style="color: var(--danger); font-weight: 500;">Founders have dropped below 50% majority ownership in this round.</div>
+            <div class="insight-item insight-item-header">
+                <div class="flex gap-3 items-start">
+                    <span class="insight-icon">✨</span>
+                    <div>You are modeling a <strong>${state.roundName}</strong> round raising <strong>${investment}</strong> at a <strong>${preMoneyStr}</strong> pre-money valuation.</div>
+                </div>
             </div>
         `);
-    }
-
-    if (pricedConversion.increaseInOptionsPool > 0) {
+        const foundersPost = postRound.common.filter((c) => c.category === "Founder");
+        const foundersPre = preRound.common.filter((c) => c.category === "Founder");
+        const totalFounderPctPost = foundersPost.reduce((a, f) => a + f.ownershipPct, 0);
+        const totalFounderPctPre = foundersPre.reduce((a, f) => a + f.ownershipPct, 0);
         insights.push(`
             <div class="insight-item">
-                <div>The model includes an option pool top-up to reach the target of <strong>${state.targetOptionsPool}%</strong>, which issued additional shares pre-round.</div>
+                <div>Founder ownership changes from <strong>${safeFormatPercent(totalFounderPctPre)}</strong> pre-round to <strong>${safeFormatPercent(totalFounderPctPost)}</strong> post-round.</div>
             </div>
         `);
-    }
-
-    container.innerHTML = insights.join("");
-
+        if (totalFounderPctPre >= 0.5 && totalFounderPctPost < 0.5) {
+            insights.push(`
+                <div class="insight-item">
+                    <div class="insight-danger">Founders have dropped below 50% majority ownership in this round.</div>
+                </div>
+            `);
+        }
+        if (pricedConversion.increaseInOptionsPool > 0) {
+            insights.push(`
+                <div class="insight-item">
+                    <div>The model includes an option pool top-up to reach the target of <strong>${state.targetOptionsPool}%</strong>, which issued additional shares pre-round.</div>
+                </div>
+            `);
+        }
+        container.innerHTML = insights.join("");
+    }, 1000); // 1.0 second delay
 };
 
 window.updateRow = (id, field, value) => {
@@ -2136,34 +1707,22 @@ window.deleteRow = (id) => {
     const row = state.rowData.find((r) => r.id === id);
     if (!row) return;
 
-    // Special case: allow removing the synthetic unused options pool row
     if (id === "UnusedOptionsPool") {
         state.targetOptionsPool = 0;
         const targetInput = document.getElementById("target-options-input");
         if (targetInput) targetInput.value = "0";
     } else {
-        // Prevent deleting the last input row of each type
         if (row.type === CapTableRowType.Common) {
             const commonCount = state.rowData.filter(
                 (r) => r.type === CapTableRowType.Common && r.id !== "UnusedOptionsPool"
             ).length;
-            if (commonCount <= 1) {
-                return;
-            }
+            if (commonCount <= 1) return;
         } else if (row.type === CapTableRowType.Safe) {
-            const safeCount = state.rowData.filter(
-                (r) => r.type === CapTableRowType.Safe
-            ).length;
-            if (safeCount <= 1) {
-                return;
-            }
+            const safeCount = state.rowData.filter((r) => r.type === CapTableRowType.Safe).length;
+            if (safeCount <= 1) return;
         } else if (row.type === CapTableRowType.Series) {
-            const seriesCount = state.rowData.filter(
-                (r) => r.type === CapTableRowType.Series
-            ).length;
-            if (seriesCount <= 1) {
-                return;
-            }
+            const seriesCount = state.rowData.filter((r) => r.type === CapTableRowType.Series).length;
+            if (seriesCount <= 1) return;
         }
     }
 
@@ -2172,33 +1731,19 @@ window.deleteRow = (id) => {
 };
 
 window.togglePricedRound = () => {
-
     state.pricedRounds = state.pricedRounds === 0 ? 1 : 0;
-
     const btn = document.getElementById("toggle-priced-btn");
-
-    btn.textContent =
-
-        state.pricedRounds > 0 ? "Remove Priced Round" : "Add Priced Round";
-
+    if (btn) btn.textContent = state.pricedRounds > 0 ? "Remove Priced Round" : "Add Priced Round";
     updateUI();
-
 };
 
 window.updateGlobal = (field, value) => {
-
     if (field === "preMoney" || field === "targetOptionsPool") {
-
         state[field] = stringToNumber(value);
-
     } else {
-
         state[field] = value;
-
     }
-
     updateUI();
-
 };
 
 document.addEventListener("DOMContentLoaded", () => {
