@@ -99,48 +99,48 @@
                             </div>
                             <div id="series-body"></div>
                         </div>
-                        <div class="valuation-summary-strip">
-                            <div class="valuation-item">
-                                <span class="valuation-label">Round PPS</span>
-                                <span class="valuation-value" id="round-pps-val">$0.00</span>
-                            </div>
-                            <div class="valuation-item">
-                                <span class="valuation-label">Post-money valuation</span>
-                                <span class="valuation-value" id="post-money-val">$0.00</span>
-                            </div>
-                        </div>
                     </section>
                 </div>
             </div>
 
         <div class="results-column">
             <section id="results-card">
-                <div class="card-header">
-                    <div class="card-title-group">
-                        <h2>Results</h2>
+                <div class="results-layout">
+                    <div class="founder-outcome-label">FOUNDER OUTCOME</div>
+                    <div class="main-stats-grid">
+                        <div class="stat-large">
+                            <span id="founder-ownership-val" class="stat-value purple">0.00%</span>
+                            <span class="stat-label">ownership post-round</span>
+                        </div>
+                        <div class="stat-large">
+                            <span id="founder-dilution-val" class="stat-value grey">0.00%</span>
+                            <span class="stat-label">dilution</span>
+                        </div>
+                    </div>
+
+                    <div class="secondary-stats-row">
+                        <div class="stat-small">
+                            <span class="stat-label-caps">POST-MONEY</span>
+                            <span id="post-money-val" class="stat-value-small">$0</span>
+                        </div>
+                        <div class="stat-small border-left">
+                            <span class="stat-label-caps">PRICE PER SHARE</span>
+                            <span id="round-pps-val" class="stat-value-small">$0.000</span>
+                        </div>
+                        <div class="stat-small border-left">
+                            <span class="stat-label-caps">TOTAL SHARES</span>
+                            <span id="total-post-shares-val" class="stat-value-small">0</span>
+                        </div>
                     </div>
                 </div>
-                <div class="results-summary-row">
-                    <div class="result-tile">
-                        <div class="result-tile-label">Total post-round shares</div>
-                        <div id="total-post-shares-val" class="result-tile-value">0</div>
-                    </div>
-                    <div class="result-tile">
-                        <div class="result-tile-label">Founder ownership</div>
-                        <div id="founder-ownership-val" class="result-tile-value">0.00%</div>
-                    </div>
-                    <div class="result-tile">
-                        <div class="result-tile-label">Founder dilution</div>
-                        <div id="founder-dilution-val" class="result-tile-value">0.00%</div>
-                    </div>
-                </div>
+
                 <div class="results-charts-row">
                     <div class="chart-column">
-                        <div class="chart-title">Ownership split</div>
+                        <div class="chart-title">OWNERSHIP SPLIT</div>
                         <div id="pie-chart-container" class="donut-container"></div>
                     </div>
                     <div class="chart-column">
-                        <div class="chart-title">Founder dilution (pre vs post)</div>
+                        <div class="chart-title">FOUNDER DILUTION (PRE VS POST)</div>
                         <div id="bar-chart-container" class="bar-chart-container"></div>
                     </div>
                 </div>

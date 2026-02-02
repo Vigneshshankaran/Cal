@@ -696,9 +696,7 @@ const updateUI = () => {
         const preMoneyInput = document.getElementById("pre-money-input");
 
         if (preMoneyInput && document.activeElement !== preMoneyInput) {
-
-            preMoneyInput.value = formatUSDWithCommas(state.preMoney);
-
+            preMoneyInput.value = formatNumberWithCommas(state.preMoney);
         }
 
         const targetOptionsInput = document.getElementById("target-options-input");
@@ -812,8 +810,6 @@ const updateUI = () => {
         const postMoneyEl = document.getElementById("post-money-val");
         if (postMoneyEl) postMoneyEl.textContent = safeFormatCurrency(postMoneyVal);
         
-        const postMoneyDisplayEl = document.getElementById("post-money-val-display");
-        if (postMoneyDisplayEl) postMoneyDisplayEl.textContent = safeFormatCurrency(postMoneyVal);
 
         const additionalOptionsEl = document.getElementById("additional-options-val");
         if (additionalOptionsEl) additionalOptionsEl.textContent = safeFormatNumber(pricedConversion.additionalOptions);
@@ -1503,7 +1499,7 @@ const renderBarChart = (preFounderPct, postFounderPct) => {
             datasets: [{
                 label: 'Founder Ownership',
                 data: data,
-                backgroundColor: ["#6366F1", "#10B981"],
+                backgroundColor: ["#E5E5ED", "#5f17ea"],
                 barPercentage: 0.5,
                 categoryPercentage: 0.7
             }]

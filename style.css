@@ -92,7 +92,7 @@ h3 {
 
 /* Priced Round Card Styles */
 .config-card {
-    background: #FFFFFF;
+    background: #f7f3fe;
     border-radius: 6px;
     padding: 24px;
     border: 1px solid var(--border-fintech);
@@ -139,7 +139,7 @@ h3 {
 }
 
 .option-pool-card {
-    background: #FFFFFF;
+    background: #f1f2f5;
     border-radius: 6px;
     padding: 24px;
     border: 1px solid var(--border-fintech);
@@ -733,7 +733,7 @@ input[type="number"],
     height: 38px;
     border-radius: 6px;
     border: 1px solid var(--border-fintech);
-    background-color: #FFFFFF;
+    background-color: #f8f8ff;
     color: var(--text-muted);
     outline: none;
     transition: all 0.2s ease;
@@ -790,7 +790,7 @@ select,
     height: 38px;
     border-radius: 6px;
     border: 1px solid var(--border-fintech);
-    background-color: #FFFFFF;
+    background-color: #f8f8ff;
     color: var(--text-muted);
     outline: none;
     cursor: pointer;
@@ -1299,43 +1299,6 @@ table .percentage-input-wrapper .percentage-suffix {
 }
 
 
-.result-tile {
-    flex: 1;
-    background: #FFFFFF;
-    border: 1px solid var(--border-fintech);
-    padding: 16px;
-    border-radius: 6px;
-    box-shadow: var(--shadow-input);
-    transition: transform 0.1s ease;
-}
-
-.result-tile:hover {
-    border-color: var(--focus-indigo);
-    box-shadow: var(--shadow-focus);
-}
-
-.result-tile-label {
-    font-family: "Inter", sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    font-style: normal;
-    line-height: 20px;
-    letter-spacing: 0;
-    color: var(--text-light);
-    text-align: center;
-    margin-bottom: 4px;
-}
-
-.result-tile-value {
-    font-family: "Inter", sans-serif;
-    font-size: 40px;
-    font-weight: 500;
-    font-style: normal;
-    line-height: 48px;
-    letter-spacing: -1.12px;
-    color: rgba(99, 91, 255, 1);
-    text-align: center; /* Enforced for consistency with label */
-}
 
 .ai-insights-header {
     display: flex;
@@ -1418,24 +1381,89 @@ table .percentage-input-wrapper .percentage-suffix {
    RESULTS CARD REFACTOR
    ============================================ */
 
-/* 1. Top Summary Metrics */
-.results-summary-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+/* 1. Results Layout (New Hierarchy) */
+.results-layout {
+    padding: 1rem 0 2.5rem 0;
 }
 
-@media (max-width: 1024px) {
-    .results-summary-row {
-        grid-template-columns: repeat(2, 1fr);
-    }
+.founder-outcome-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-light);
+    letter-spacing: 0.05em;
+    margin-bottom: 1.25rem;
+    text-transform: uppercase;
 }
 
-@media (max-width: 640px) {
-    .results-summary-row {
-        grid-template-columns: 1fr;
-    }
+.main-stats-grid {
+    display: flex;
+    gap: 4rem;
+    margin-bottom: 3rem;
+    align-items: flex-end;
+}
+
+.stat-large {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.stat-value {
+    font-size: 56px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.04em;
+}
+
+.stat-value.purple {
+    color: #5f17ea;
+}
+
+.stat-value.grey {
+    color: #374151;
+}
+
+.stat-label {
+    font-size: 16px;
+    color: #6B7280;
+    font-weight: 400;
+}
+
+.secondary-stats-row {
+    display: flex;
+    border-top: 1px solid #E5E7EB;
+    padding-top: 2rem;
+    margin-top: 1rem;
+}
+
+.stat-small {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0 2rem;
+}
+
+.stat-small:first-child {
+    padding-left: 0;
+}
+
+.stat-small.border-left {
+    border-left: 1px solid #E5E7EB;
+}
+
+.stat-label-caps {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6B7280;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.stat-value-small {
+    font-size: 24px;
+    font-weight: 600;
+    color: #111827;
 }
 
 /* 2. Charts Row - Unified Card */
@@ -1901,31 +1929,6 @@ table .percentage-input-wrapper .percentage-suffix {
     margin-bottom: 0.5rem;
 }
 
-/* Valuation Summary Strip (Read-only) */
-.valuation-summary-strip {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1.5rem 3rem;
-    padding: 1rem 0;
-}
-
-.valuation-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.valuation-label {
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--text-light);
-}
-
-.valuation-value {
-    font-size: 1.25rem;
-    font-weight: 500;
-    color: var(--text-dark);
-}
 
 /* Investor Table */
 .investor-table thead {
