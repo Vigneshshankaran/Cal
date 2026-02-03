@@ -144,6 +144,7 @@ h3 {
   margin-top: 12px;
   font-size: 13px;
   color: var(--text-muted);
+  display: none;
 }
 
 .valuation-subtext strong {
@@ -910,17 +911,47 @@ input[type="checkbox"] {
 
 /* Primary Button */
 .btn-primary {
-  background: #ffffff;
-  border: 1.33px solid var(--brand-indigo);
-  color: #0d0a40;
-  padding: 4px 16px;
-  box-shadow: var(--shadow-button), var(--shadow-button-inset);
-  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: transparent;
+  color: #111;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
 }
 
 .btn-primary:hover {
-  background-color: #f9fafb;
-  border-color: var(--focus-indigo);
+  background-color: #f0e6ff;
+  color: #5F17EA;
+}
+
+.btn-primary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.btn-icon-1 {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.btn-primary:hover .btn-icon {
+  color: #5F17EA;
 }
 
 .btn:active {
@@ -974,9 +1005,9 @@ input[type="checkbox"] {
    ============================================ */
 
 .table-container {
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
   width: 100%;
   margin-top: 2rem;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
   padding-top: 2rem;
 }
 
@@ -1380,7 +1411,6 @@ table .percentage-input-wrapper .percentage-suffix {
   border: 1px solid var(--border-fintech);
   border-radius: 12px;
   padding: 24px;
-  margin-top: 1rem;
   box-shadow: var(--shadow-input);
 }
 
@@ -1524,7 +1554,7 @@ table .percentage-input-wrapper .percentage-suffix {
 .main-stats-grid {
   display: flex;
   gap: 4rem;
-  margin-bottom: 3rem;
+  margin-bottom: 2.5rem;
   align-items: flex-end;
 }
 
@@ -1557,9 +1587,6 @@ table .percentage-input-wrapper .percentage-suffix {
 
 .secondary-stats-row {
   display: flex;
-  border-top: 1px solid #e5e7eb;
-  padding-top: 2rem;
-  margin-top: 1rem;
 }
 
 .stat-small {
@@ -1571,10 +1598,6 @@ table .percentage-input-wrapper .percentage-suffix {
 
 .stat-small:first-child {
   padding-left: 0;
-}
-
-.stat-small.border-left {
-  border-left: 1px solid #e5e7eb;
 }
 
 .stat-label-caps {
@@ -1595,12 +1618,11 @@ table .percentage-input-wrapper .percentage-suffix {
 .results-charts-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 3rem;
-  margin-bottom: 3rem;
+  gap: 2.5rem;
+  margin-bottom: 2.5rem;
   background: var(--white);
-  border-radius: var(--radius-medium);
-  padding: 2.5rem;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 0 2.5rem;
+  border-top: 0px;
 }
 
 @media (max-width: 1024px) {
