@@ -1002,6 +1002,7 @@ const renderSAFEs = () => {
                     <select class="select row-select" onchange="updateRow('${row.id}', 'conversionType', this.value)">
                         <option value="post" ${row.conversionType === "post" ? "selected" : ""}>Post-money</option>
                         <option value="pre" ${row.conversionType === "pre" ? "selected" : ""}>Pre-money</option>
+                        <option value="mfn" ${row.conversionType === "mfn" ? "selected" : ""}>MFN</option>
                     </select>
                 </div>
             </div>
@@ -1748,6 +1749,7 @@ window.togglePricedRound = () => {
     updateUI();
 };
 
+
 window.updateGlobal = (field, value) => {
     if (field === "preMoney" || field === "targetOptionsPool") {
         state[field] = stringToNumber(value);
@@ -1759,4 +1761,433 @@ window.updateGlobal = (field, value) => {
 
 document.addEventListener("DOMContentLoaded", () => {
     updateUI();
+    
+    // Initialize EmailJS with your public key
+    // IMPORTANT: Replace 'YOUR_PUBLIC_KEY' with your actual EmailJS public key
+    emailjs.init('YOUR_PUBLIC_KEY');
+});
+
+// ============================================
+// PDF EXPORT & EMAIL FUNCTIONALITY
+// ============================================
+
+// Helper function to show toast notifications
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast-notification');
+    toast.textContent = message;
+    toast.className = `toast-notification ${type}`;
+    toast.style.display = 'block';
+    
+    setTimeout(() => {
+        toast.style.display = 'none';
+    }, 4000);
+}
+
+// Email validation
+function validateEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+}
+
+// Show/Hide Email Modal
+window.showEmailModal = function() {
+    const modal = document.getElementById('email-modal');
+    const emailInput = document.getElementById('email-input');
+    const errorSpan = document.getElementById('email-error');
+    
+    emailInput.value = '';
+    errorSpan.style.display = 'none';
+    modal.style.display = 'flex';
+    
+    setTimeout(() => emailInput.focus(), 100);
+};
+
+window.hideEmailModal = function() {
+    const modal = document.getElementById('email-modal');
+    modal.style.display = 'none';
+};
+
+// Capture charts as images
+async function captureCharts() {
+    const charts = {};
+    
+    try {
+        // Capture pie chart
+        const pieContainer = document.getElementById('pie-chart-container');
+        if (pieContainer && pieContainer.querySelector('canvas')) {
+            const pieCanvas = await html2canvas(pieContainer, {
+                backgroundColor: '#ffffff',
+                scale: 2
+            });
+            charts.pie = pieCanvas.toDataURL('image/png');
+        }
+        
+        // Capture bar chart
+        const barContainer = document.getElementById('bar-chart-container');
+        if (barContainer && barContainer.querySelector('canvas')) {
+            const barCanvas = await html2canvas(barContainer, {
+                backgroundColor: '#ffffff',
+                scale: 2
+            });
+            charts.bar = barCanvas.toDataURL('image/png');
+        }
+    } catch (error) {
+        console.error('Error capturing charts:', error);
+    }
+    
+    return charts;
+}
+
+// Generate PDF with exact UI replica
+async function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    
+    // Page dimensions
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    const contentWidth = pageWidth - (margin * 2);
+    let yPos = margin;
+    
+    // Colors matching your design
+    const primaryNavy = '#0d0a40';
+    const brandIndigo = '#4a32e5';
+    const textMuted = '#444266';
+    const textLight = '#9ca3af';
+    const purple = '#5f17ea';
+    const grey = '#374151';
+    
+    // Header
+    doc.setFontSize(24);
+    doc.setTextColor(primaryNavy);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SAFE Calculator Results', margin, yPos);
+    yPos += 10;
+    
+    // Timestamp
+    doc.setFontSize(10);
+    doc.setTextColor(textMuted);
+    doc.setFont('helvetica', 'normal');
+    const timestamp = new Date().toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    doc.text(`Generated on ${timestamp}`, margin, yPos);
+    yPos += 15;
+    
+    // Founder Outcome Section
+    doc.setFontSize(9);
+    doc.setTextColor(textLight);
+    doc.setFont('helvetica', 'bold');
+    doc.text('FOUNDER OUTCOME', margin, yPos);
+    yPos += 8;
+    
+    // Main stats
+    const founderOwnership = document.getElementById('founder-ownership-val').textContent;
+    const founderDilution = document.getElementById('founder-dilution-val').textContent;
+    
+    doc.setFontSize(32);
+    doc.setTextColor(purple);
+    doc.setFont('helvetica', 'bold');
+    doc.text(founderOwnership, margin, yPos);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(textMuted);
+    doc.setFont('helvetica', 'normal');
+    doc.text('ownership post-round', margin, yPos + 6);
+    
+    doc.setFontSize(32);
+    doc.setTextColor(grey);
+    doc.setFont('helvetica', 'bold');
+    doc.text(founderDilution, margin + 80, yPos);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(textMuted);
+    doc.setFont('helvetica', 'normal');
+    doc.text('dilution', margin + 80, yPos + 6);
+    yPos += 20;
+    
+    // Divider line
+    doc.setDrawColor(229, 231, 235);
+    doc.setLineWidth(0.5);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 8;
+    
+    // Secondary stats
+    const postMoney = document.getElementById('post-money-val').textContent;
+    const pps = document.getElementById('round-pps-val').textContent;
+    const totalShares = document.getElementById('total-post-shares-val').textContent;
+    
+    doc.setFontSize(8);
+    doc.setTextColor(textLight);
+    doc.setFont('helvetica', 'bold');
+    doc.text('POST-MONEY', margin, yPos);
+    doc.text('PRICE PER SHARE', margin + 60, yPos);
+    doc.text('TOTAL SHARES', margin + 120, yPos);
+    yPos += 5;
+    
+    doc.setFontSize(14);
+    doc.setTextColor(primaryNavy);
+    doc.setFont('helvetica', 'bold');
+    doc.text(postMoney, margin, yPos);
+    doc.text(pps, margin + 60, yPos);
+    doc.text(totalShares, margin + 120, yPos);
+    yPos += 15;
+    
+    // Charts section
+    const charts = await captureCharts();
+    
+    if (charts.pie || charts.bar) {
+        // Add new page for charts
+        doc.addPage();
+        yPos = margin;
+        
+        doc.setFontSize(14);
+        doc.setTextColor(primaryNavy);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Charts & Visualizations', margin, yPos);
+        yPos += 10;
+        
+        if (charts.pie) {
+            doc.setFontSize(10);
+            doc.setTextColor(textMuted);
+            doc.setFont('helvetica', 'bold');
+            doc.text('OWNERSHIP SPLIT', margin, yPos);
+            yPos += 5;
+            
+            const imgWidth = contentWidth * 0.8;
+            const imgHeight = (imgWidth * 3) / 4;
+            doc.addImage(charts.pie, 'PNG', margin, yPos, imgWidth, imgHeight);
+            yPos += imgHeight + 15;
+        }
+        
+        if (charts.bar && yPos + 60 < pageHeight) {
+            doc.setFontSize(10);
+            doc.setTextColor(textMuted);
+            doc.setFont('helvetica', 'bold');
+            doc.text('FOUNDER DILUTION (PRE VS POST)', margin, yPos);
+            yPos += 5;
+            
+            const imgWidth = contentWidth * 0.6;
+            const imgHeight = (imgWidth * 3) / 4;
+            doc.addImage(charts.bar, 'PNG', margin, yPos, imgWidth, imgHeight);
+            yPos += imgHeight + 10;
+        } else if (charts.bar) {
+            doc.addPage();
+            yPos = margin;
+            
+            doc.setFontSize(10);
+            doc.setTextColor(textMuted);
+            doc.setFont('helvetica', 'bold');
+            doc.text('FOUNDER DILUTION (PRE VS POST)', margin, yPos);
+            yPos += 5;
+            
+            const imgWidth = contentWidth * 0.6;
+            const imgHeight = (imgWidth * 3) / 4;
+            doc.addImage(charts.bar, 'PNG', margin, yPos, imgWidth, imgHeight);
+        }
+    }
+    
+    // Ownership Breakdown Table
+    doc.addPage();
+    yPos = margin;
+    
+    doc.setFontSize(12);
+    doc.setTextColor(primaryNavy);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Ownership Breakdown', margin, yPos);
+    yPos += 8;
+    
+    // Table headers
+    const tableHeaders = ['Category', 'Shares(Pre)', 'Shares(Post)', '% (Pre)', '% (Post)', 'PPS'];
+    const colWidths = [40, 25, 25, 20, 20, 25];
+    let xPos = margin;
+    
+    doc.setFontSize(8);
+    doc.setTextColor(textMuted);
+    doc.setFont('helvetica', 'bold');
+    
+    tableHeaders.forEach((header, i) => {
+        if (i === 0) {
+            doc.text(header, xPos, yPos);
+        } else {
+            doc.text(header, xPos, yPos, { align: 'right' });
+        }
+        xPos += colWidths[i];
+    });
+    yPos += 5;
+    
+    // Table divider
+    doc.setDrawColor(229, 231, 235);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 5;
+    
+    // Table rows
+    const tableBody = document.getElementById('post-round-table');
+    if (tableBody) {
+        const rows = tableBody.querySelectorAll('tr');
+        
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        
+        rows.forEach((row, rowIndex) => {
+            if (yPos > pageHeight - 20) {
+                doc.addPage();
+                yPos = margin;
+            }
+            
+            const cells = row.querySelectorAll('td');
+            xPos = margin;
+            
+            cells.forEach((cell, i) => {
+                doc.setTextColor(primaryNavy);
+                const text = cell.textContent.trim();
+                
+                if (i === 0) {
+                    doc.text(text, xPos, yPos);
+                } else {
+                    doc.text(text, xPos + colWidths[i], yPos, { align: 'right' });
+                }
+                xPos += colWidths[i];
+            });
+            
+            yPos += 6;
+            
+            // Row divider
+            doc.setDrawColor(233, 234, 235);
+            doc.setLineWidth(0.2);
+            doc.line(margin, yPos, pageWidth - margin, yPos);
+            yPos += 4;
+        });
+    }
+    
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(textLight);
+        doc.setFont('helvetica', 'normal');
+        doc.text(
+            `Page ${i} of ${pageCount}`,
+            pageWidth / 2,
+            pageHeight - 10,
+            { align: 'center' }
+        );
+    }
+    
+    return doc;
+}
+
+// Download PDF
+window.downloadPDF = async function() {
+    try {
+        showToast('Generating PDF...', 'success');
+        
+        const doc = await generatePDF();
+        const fileName = `SAFE_Calculator_Results_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
+        
+        showToast('PDF downloaded successfully!', 'success');
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        showToast('Failed to generate PDF. Please try again.', 'error');
+    }
+};
+
+// Send Email with PDF
+window.sendEmailWithPDF = async function() {
+    const emailInput = document.getElementById('email-input');
+    const errorSpan = document.getElementById('email-error');
+    const sendBtn = document.getElementById('send-email-btn');
+    const btnText = document.getElementById('send-btn-text');
+    const btnLoader = document.getElementById('send-btn-loader');
+    
+    const email = emailInput.value.trim();
+    
+    // Validate email
+    if (!email) {
+        errorSpan.textContent = 'Please enter an email address';
+        errorSpan.style.display = 'block';
+        return;
+    }
+    
+    if (!validateEmail(email)) {
+        errorSpan.textContent = 'Please enter a valid email address';
+        errorSpan.style.display = 'block';
+        return;
+    }
+    
+    errorSpan.style.display = 'none';
+    
+    // Show loading state
+    sendBtn.disabled = true;
+    btnText.style.display = 'none';
+    btnLoader.style.display = 'inline-flex';
+    
+    try {
+        // Get current results data
+        const founderOwnership = document.getElementById('founder-ownership-val').textContent;
+        const founderDilution = document.getElementById('founder-dilution-val').textContent;
+        const postMoney = document.getElementById('post-money-val').textContent;
+        const pps = document.getElementById('round-pps-val').textContent;
+        const totalShares = document.getElementById('total-post-shares-val').textContent;
+        
+        // Send email using EmailJS with results summary
+        const templateParams = {
+            to_email: email,
+            to_name: email.split('@')[0],
+            founder_ownership: founderOwnership,
+            founder_dilution: founderDilution,
+            post_money: postMoney,
+            price_per_share: pps,
+            total_shares: totalShares,
+            timestamp: new Date().toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            })
+        };
+        
+        await emailjs.send(
+            'YOUR_SERVICE_ID',  // Replace with your EmailJS service ID
+            'YOUR_TEMPLATE_ID', // Replace with your EmailJS template ID
+            templateParams
+        );
+        
+        hideEmailModal();
+        showToast('Email sent successfully! Check your inbox.', 'success');
+    } catch (error) {
+        console.error('Error sending email:', error);
+        showToast(`Failed to send email: ${error.text || error.message || 'Please check your EmailJS configuration'}`, 'error');
+    } finally {
+        // Reset button state
+        sendBtn.disabled = false;
+        btnText.style.display = 'inline';
+        btnLoader.style.display = 'none';
+    }
+};
+
+// Close modal on outside click
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('email-modal');
+    if (event.target === modal) {
+        hideEmailModal();
+    }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const modal = document.getElementById('email-modal');
+        if (modal.style.display === 'flex') {
+            hideEmailModal();
+        }
+    }
 });
