@@ -916,6 +916,7 @@ const renderShareholders = (totalSharesS0) => {
     container.innerHTML = "";
     const categories = ["Founder", "ESOP Pool (granted)", "ESOP Pool (unallocated)", "Investor", "Other"];
     const shareholders = state.rowData.filter((r) => r.type === CapTableRowType.Common);
+    const showDelete = shareholders.length > 1;
     
     shareholders.forEach((row) => {
         const ownershipPct = totalSharesS0 > 0 ? row.shares / totalSharesS0 : NaN;
@@ -925,7 +926,7 @@ const renderShareholders = (totalSharesS0) => {
         card.innerHTML = `
             <div class="row-card-header">
                 <input class="input flex-1" value="${row.name}" placeholder="Name" onchange="updateRow('${row.id}', 'name', this.value)">
-                <button class="btn-trash row-trash-btn" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>
+                ${showDelete ? `<button class="btn-trash row-trash-btn" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>` : ""}
             </div>
             <div class="row-card-grid-shareholder">
                 <div>
@@ -961,6 +962,7 @@ const renderSAFEs = () => {
     if (!container) return;
     container.innerHTML = "";
     const safeRows = state.rowData.filter((r) => r.type === CapTableRowType.Safe);
+    const showDelete = safeRows.length > 1;
     let totalInv = 0;
     
     safeRows.forEach((row) => {
@@ -970,7 +972,7 @@ const renderSAFEs = () => {
         card.innerHTML = `
             <div class="safe-card-header">
                 <input class="input safe-name-input" value="${row.name}" placeholder="New SAFE" onchange="updateRow('${row.id}', 'name', this.value)" />
-                <button class="btn-trash row-trash-btn" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>
+                ${showDelete ? `<button class="btn-trash row-trash-btn" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>` : ""}
             </div>
             <div class="row-card-grid-safe">
                 <div>
@@ -1028,6 +1030,7 @@ const renderSeriesInvestors = () => {
     if (!container) return;
     container.innerHTML = "";
     const seriesInvestors = state.rowData.filter((r) => r.type === CapTableRowType.Series);
+    const showDelete = seriesInvestors.length > 1;
     let totalInv = 0;
     
     seriesInvestors.forEach((row) => {
@@ -1041,7 +1044,7 @@ const renderSeriesInvestors = () => {
                 <input class="input series-investor-input" type="text" value="${formatNumberWithCommas(row.investment)}" 
                     oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'investment', this.value)">
             </div>
-            <button class="btn-trash row-trash-btn" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>
+            ${showDelete ? `<button class="btn-trash row-trash-btn" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>` : ""}
         `;
         container.appendChild(card);
     });
@@ -1817,9 +1820,10 @@ async function captureCharts() {
         if (pieContainer && pieContainer.querySelector('canvas')) {
             const pieCanvas = await html2canvas(pieContainer, {
                 backgroundColor: '#ffffff',
-                scale: 2
+                scale: 1.5, // Increased from 1 for better quality
+                logging: false
             });
-            charts.pie = pieCanvas.toDataURL('image/png');
+            charts.pie = pieCanvas.toDataURL('image/jpeg', 0.85); // Increased quality to 85%
         }
         
         // Capture bar chart
@@ -1827,9 +1831,10 @@ async function captureCharts() {
         if (barContainer && barContainer.querySelector('canvas')) {
             const barCanvas = await html2canvas(barContainer, {
                 backgroundColor: '#ffffff',
-                scale: 2
+                scale: 1.5, // Increased from 1 for better quality
+                logging: false
             });
-            charts.bar = barCanvas.toDataURL('image/png');
+            charts.bar = barCanvas.toDataURL('image/jpeg', 0.85); // Increased quality to 85%
         }
     } catch (error) {
         console.error('Error capturing charts:', error);
@@ -1838,35 +1843,59 @@ async function captureCharts() {
     return charts;
 }
 
-// Generate PDF with exact UI replica
-async function generatePDF() {
+// Helper to normalize styles for high-quality capture
+const normalizeForCapture = (element) => {
+    const original = {
+        position: element.style.position,
+        top: element.style.top,
+        height: element.style.height,
+        maxHeight: element.style.maxHeight,
+        overflow: element.style.overflow,
+        overflowY: element.style.overflowY,
+        width: element.style.width,
+        boxShadow: element.style.boxShadow,
+        borderRadius: element.style.borderRadius
+    };
+    
+    element.style.position = 'static';
+    element.style.top = 'auto';
+    element.style.height = 'auto';
+    element.style.maxHeight = 'none';
+    element.style.overflow = 'visible';
+    element.style.overflowY = 'visible';
+    element.style.width = '100%';
+    element.style.boxShadow = 'none';
+    element.style.borderRadius = '0';
+    
+    return original;
+};
+
+const restoreAfterCapture = (element, original) => {
+    Object.assign(element.style, original);
+};
+
+// Generate PDF for Calculator Inputs (calculator-column) - Smart Pagination & Slicing
+async function generateInputsPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
     
-    // Page dimensions
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 20;
+    const margin = 15;
     const contentWidth = pageWidth - (margin * 2);
     let yPos = margin;
     
-    // Colors matching your design
     const primaryNavy = '#0d0a40';
-    const brandIndigo = '#4a32e5';
     const textMuted = '#444266';
-    const textLight = '#9ca3af';
-    const purple = '#5f17ea';
-    const grey = '#374151';
     
     // Header
-    doc.setFontSize(24);
+    doc.setFontSize(20);
     doc.setTextColor(primaryNavy);
     doc.setFont('helvetica', 'bold');
-    doc.text('SAFE Calculator Results', margin, yPos);
-    yPos += 10;
+    doc.text('Calculator Inputs', margin, yPos);
+    yPos += 8;
     
-    // Timestamp
-    doc.setFontSize(10);
+    doc.setFontSize(8);
     doc.setTextColor(textMuted);
     doc.setFont('helvetica', 'normal');
     const timestamp = new Date().toLocaleString('en-US', {
@@ -1877,207 +1906,201 @@ async function generatePDF() {
         minute: '2-digit'
     });
     doc.text(`Generated on ${timestamp}`, margin, yPos);
-    yPos += 15;
-    
-    // Founder Outcome Section
-    doc.setFontSize(9);
-    doc.setTextColor(textLight);
-    doc.setFont('helvetica', 'bold');
-    doc.text('FOUNDER OUTCOME', margin, yPos);
-    yPos += 8;
-    
-    // Main stats
-    const founderOwnership = document.getElementById('founder-ownership-val').textContent;
-    const founderDilution = document.getElementById('founder-dilution-val').textContent;
-    
-    doc.setFontSize(32);
-    doc.setTextColor(purple);
-    doc.setFont('helvetica', 'bold');
-    doc.text(founderOwnership, margin, yPos);
-    
-    doc.setFontSize(10);
-    doc.setTextColor(textMuted);
-    doc.setFont('helvetica', 'normal');
-    doc.text('ownership post-round', margin, yPos + 6);
-    
-    doc.setFontSize(32);
-    doc.setTextColor(grey);
-    doc.setFont('helvetica', 'bold');
-    doc.text(founderDilution, margin + 80, yPos);
-    
-    doc.setFontSize(10);
-    doc.setTextColor(textMuted);
-    doc.setFont('helvetica', 'normal');
-    doc.text('dilution', margin + 80, yPos + 6);
-    yPos += 20;
-    
-    // Divider line
-    doc.setDrawColor(229, 231, 235);
-    doc.setLineWidth(0.5);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    yPos += 8;
-    
-    // Secondary stats
-    const postMoney = document.getElementById('post-money-val').textContent;
-    const pps = document.getElementById('round-pps-val').textContent;
-    const totalShares = document.getElementById('total-post-shares-val').textContent;
-    
-    doc.setFontSize(8);
-    doc.setTextColor(textLight);
-    doc.setFont('helvetica', 'bold');
-    doc.text('POST-MONEY', margin, yPos);
-    doc.text('PRICE PER SHARE', margin + 60, yPos);
-    doc.text('TOTAL SHARES', margin + 120, yPos);
-    yPos += 5;
-    
-    doc.setFontSize(14);
-    doc.setTextColor(primaryNavy);
-    doc.setFont('helvetica', 'bold');
-    doc.text(postMoney, margin, yPos);
-    doc.text(pps, margin + 60, yPos);
-    doc.text(totalShares, margin + 120, yPos);
-    yPos += 15;
-    
-    // Charts section
-    const charts = await captureCharts();
-    
-    if (charts.pie || charts.bar) {
-        // Add new page for charts
-        doc.addPage();
-        yPos = margin;
-        
-        doc.setFontSize(14);
-        doc.setTextColor(primaryNavy);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Charts & Visualizations', margin, yPos);
-        yPos += 10;
-        
-        if (charts.pie) {
-            doc.setFontSize(10);
-            doc.setTextColor(textMuted);
-            doc.setFont('helvetica', 'bold');
-            doc.text('OWNERSHIP SPLIT', margin, yPos);
-            yPos += 5;
+    yPos += 10;
+
+    const sections = [
+        { id: 'cap-table-section', name: 'Cap Table' },
+        { id: 'safes-section', name: 'SAFE Terms' },
+        { id: 'priced-round-section', name: 'Priced Round' }
+    ];
+
+    for (const sectionInfo of sections) {
+        const section = document.getElementById(sectionInfo.id);
+        if (!section) continue;
+
+        try {
+            // Hide buttons
+            const buttons = section.querySelectorAll('.btn-primary');
+            buttons.forEach(btn => btn.style.visibility = 'hidden');
             
-            const imgWidth = contentWidth * 0.8;
-            const imgHeight = (imgWidth * 3) / 4;
-            doc.addImage(charts.pie, 'PNG', margin, yPos, imgWidth, imgHeight);
-            yPos += imgHeight + 15;
-        }
-        
-        if (charts.bar && yPos + 60 < pageHeight) {
-            doc.setFontSize(10);
-            doc.setTextColor(textMuted);
-            doc.setFont('helvetica', 'bold');
-            doc.text('FOUNDER DILUTION (PRE VS POST)', margin, yPos);
-            yPos += 5;
+            const originalStyles = normalizeForCapture(section);
             
-            const imgWidth = contentWidth * 0.6;
-            const imgHeight = (imgWidth * 3) / 4;
-            doc.addImage(charts.bar, 'PNG', margin, yPos, imgWidth, imgHeight);
-            yPos += imgHeight + 10;
-        } else if (charts.bar) {
-            doc.addPage();
-            yPos = margin;
+            const canvas = await html2canvas(section, {
+                backgroundColor: '#f8f8ff',
+                scale: 2,
+                logging: false,
+                useCORS: true,
+                allowTaint: true
+            });
             
-            doc.setFontSize(10);
-            doc.setTextColor(textMuted);
-            doc.setFont('helvetica', 'bold');
-            doc.text('FOUNDER DILUTION (PRE VS POST)', margin, yPos);
-            yPos += 5;
+            buttons.forEach(btn => btn.style.visibility = 'visible');
+            restoreAfterCapture(section, originalStyles);
             
-            const imgWidth = contentWidth * 0.6;
-            const imgHeight = (imgWidth * 3) / 4;
-            doc.addImage(charts.bar, 'PNG', margin, yPos, imgWidth, imgHeight);
-        }
-    }
-    
-    // Ownership Breakdown Table
-    doc.addPage();
-    yPos = margin;
-    
-    doc.setFontSize(12);
-    doc.setTextColor(primaryNavy);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Ownership Breakdown', margin, yPos);
-    yPos += 8;
-    
-    // Table headers
-    const tableHeaders = ['Category', 'Shares(Pre)', 'Shares(Post)', '% (Pre)', '% (Post)', 'PPS'];
-    const colWidths = [40, 25, 25, 20, 20, 25];
-    let xPos = margin;
-    
-    doc.setFontSize(8);
-    doc.setTextColor(textMuted);
-    doc.setFont('helvetica', 'bold');
-    
-    tableHeaders.forEach((header, i) => {
-        if (i === 0) {
-            doc.text(header, xPos, yPos);
-        } else {
-            doc.text(header, xPos, yPos, { align: 'right' });
-        }
-        xPos += colWidths[i];
-    });
-    yPos += 5;
-    
-    // Table divider
-    doc.setDrawColor(229, 231, 235);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    yPos += 5;
-    
-    // Table rows
-    const tableBody = document.getElementById('post-round-table');
-    if (tableBody) {
-        const rows = tableBody.querySelectorAll('tr');
-        
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        
-        rows.forEach((row, rowIndex) => {
-            if (yPos > pageHeight - 20) {
+            const imgWidth = contentWidth;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+            // Check if section needs to start on a new page (Smart Pagination)
+            if (yPos + imgHeight > pageHeight - margin && yPos > margin + 20) {
                 doc.addPage();
                 yPos = margin;
             }
+
+            // Slicing Logic for sections taller than the available space
+            let remainingHeight = imgHeight;
+            let sourceY = 0;
             
-            const cells = row.querySelectorAll('td');
-            xPos = margin;
-            
-            cells.forEach((cell, i) => {
-                doc.setTextColor(primaryNavy);
-                const text = cell.textContent.trim();
+            while (remainingHeight > 0) {
+                const availableSpace = pageHeight - yPos - margin;
+                const heightToDraw = Math.min(remainingHeight, availableSpace);
+                const sourceHeightPx = (heightToDraw / imgWidth) * canvas.width;
                 
-                if (i === 0) {
-                    doc.text(text, xPos, yPos);
-                } else {
-                    doc.text(text, xPos + colWidths[i], yPos, { align: 'right' });
+                // Create a temporary canvas for this slice
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = sourceHeightPx;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeightPx, 0, 0, canvas.width, sourceHeightPx);
+                
+                const sliceImgData = tempCanvas.toDataURL('image/jpeg', 0.85);
+                doc.addImage(sliceImgData, 'JPEG', margin, yPos, imgWidth, heightToDraw);
+                
+                remainingHeight -= heightToDraw;
+                sourceY += sourceHeightPx;
+                yPos += heightToDraw;
+
+                if (remainingHeight > 0.1) { // 0.1mm threshold for floating point errors
+                    doc.addPage();
+                    yPos = margin;
                 }
-                xPos += colWidths[i];
-            });
+            }
             
-            yPos += 6;
-            
-            // Row divider
-            doc.setDrawColor(233, 234, 235);
-            doc.setLineWidth(0.2);
-            doc.line(margin, yPos, pageWidth - margin, yPos);
-            yPos += 4;
-        });
+            yPos += 10; // Extra spacing after section
+
+        } catch (error) {
+            console.error(`Error capturing ${sectionInfo.name}:`, error);
+        }
     }
     
     // Footer
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(textLight);
-        doc.setFont('helvetica', 'normal');
-        doc.text(
-            `Page ${i} of ${pageCount}`,
-            pageWidth / 2,
-            pageHeight - 10,
-            { align: 'center' }
-        );
+        doc.setFontSize(7);
+        doc.setTextColor('#9ca3af');
+        doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+    }
+    
+    return doc;
+}
+
+// Generate PDF for Results (results-column) - Smart Pagination & Slicing
+async function generateResultsPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentWidth = pageWidth - (margin * 2);
+    let yPos = margin;
+    
+    const primaryNavy = '#0d0a40';
+    const textMuted = '#444266';
+    
+    // Header
+    doc.setFontSize(20);
+    doc.setTextColor(primaryNavy);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SAFE Calculator Results', margin, yPos);
+    yPos += 8;
+    
+    doc.setFontSize(8);
+    doc.setTextColor(textMuted);
+    doc.setFont('helvetica', 'normal');
+    const timestamp = new Date().toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    doc.text(`Generated on ${timestamp}`, margin, yPos);
+    yPos += 10;
+    
+    const sections = [
+        { id: 'results-card', name: 'Results Summary' },
+        { id: 'ai-advisor-section', name: 'AI Equity Advisor' },
+        { id: 'breakdown-section', name: 'Ownership Breakdown' }
+    ];
+
+    for (const sectionInfo of sections) {
+        const section = document.getElementById(sectionInfo.id);
+        if (!section) continue;
+
+        try {
+            const originalStyles = normalizeForCapture(section);
+            
+            const canvas = await html2canvas(section, {
+                backgroundColor: '#f8f8ff',
+                scale: 1.5,
+                logging: false,
+                useCORS: true,
+                allowTaint: true
+            });
+            
+            restoreAfterCapture(section, originalStyles);
+            
+            const imgWidth = contentWidth;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+            // Smart Pagination: Start on new page if it won't fit (unless already top of page)
+            if (yPos + imgHeight > pageHeight - margin && yPos > margin + 20) {
+                doc.addPage();
+                yPos = margin;
+            }
+
+            // Slicing Logic for oversized sections
+            let remainingHeight = imgHeight;
+            let sourceY = 0;
+            
+            while (remainingHeight > 0) {
+                const availableSpace = pageHeight - yPos - margin;
+                const heightToDraw = Math.min(remainingHeight, availableSpace);
+                const sourceHeightPx = (heightToDraw / imgWidth) * canvas.width;
+                
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = sourceHeightPx;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeightPx, 0, 0, canvas.width, sourceHeightPx);
+                
+                const sliceImgData = tempCanvas.toDataURL('image/jpeg', 0.85);
+                doc.addImage(sliceImgData, 'JPEG', margin, yPos, imgWidth, heightToDraw);
+                
+                remainingHeight -= heightToDraw;
+                sourceY += sourceHeightPx;
+                yPos += heightToDraw;
+
+                if (remainingHeight > 0.1) {
+                    doc.addPage();
+                    yPos = margin;
+                }
+            }
+            
+            yPos += 10;
+
+        } catch (error) {
+            console.error(`Error capturing ${sectionInfo.name}:`, error);
+        }
+    }
+    
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(7);
+        doc.setTextColor('#9ca3af');
+        doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
     }
     
     return doc;
@@ -2086,16 +2109,25 @@ async function generatePDF() {
 // Download PDF
 window.downloadPDF = async function() {
     try {
-        showToast('Generating PDF...', 'success');
+        showToast('Generating PDFs...', 'success');
         
-        const doc = await generatePDF();
-        const fileName = `SAFE_Calculator_Results_${new Date().toISOString().split('T')[0]}.pdf`;
-        doc.save(fileName);
+        const dateStr = new Date().toISOString().split('T')[0];
         
-        showToast('PDF downloaded successfully!', 'success');
+        // Generate and download Calculator Inputs PDF
+        const inputsPDF = await generateInputsPDF();
+        inputsPDF.save(`SAFE_Calculator_Inputs_${dateStr}.pdf`);
+        
+        // Small delay between downloads
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Generate and download Results PDF
+        const resultsPDF = await generateResultsPDF();
+        resultsPDF.save(`SAFE_Calculator_Results_${dateStr}.pdf`);
+        
+        showToast('PDFs downloaded successfully!', 'success');
     } catch (error) {
-        console.error('Error generating PDF:', error);
-        showToast('Failed to generate PDF. Please try again.', 'error');
+        console.error('Error generating PDFs:', error);
+        showToast('Failed to generate PDFs. Please try again.', 'error');
     }
 };
 
