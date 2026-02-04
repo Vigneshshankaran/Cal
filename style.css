@@ -823,9 +823,18 @@ select:focus,
 .input[readonly],
 input:disabled,
 input[readonly] {
-  background-color: var(--bg-page);
-  color: var(--text-light);
-  cursor: not-allowed;
+  background-color: var(--bg-page) !important;
+  color: var(--text-light) !important;
+  cursor: not-allowed !important;
+  border-color: var(--border-fintech) !important;
+  box-shadow: none !important;
+  pointer-events: none;
+}
+
+.input:disabled:hover,
+.input[readonly]:hover {
+  border-color: var(--border-fintech) !important;
+  box-shadow: none !important;
 }
 
 .compact-input {
