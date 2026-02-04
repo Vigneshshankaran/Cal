@@ -901,7 +901,7 @@ const updateUI = () => {
 
         renderBarChart(totalFounderPctPre, totalFounderPctPost);
 
-        renderAIAdvisor(preRound, postRound, pricedConversion, state);
+        renderAIAdvisor(preRound, postRound, pricedConversion, state, totalFounderPctPre);
 
     } catch (error) {
 
@@ -1573,7 +1573,7 @@ const renderBarChart = (preFounderPct, postFounderPct) => {
 // Global Loading State
 let aiLoadingTimeout = null;
 
-const renderAIAdvisor = (preRound, postRound, pricedConversion, state) => {
+const renderAIAdvisor = (preRound, postRound, pricedConversion, state, strictlyPreFounderPct) => {
     const container = document.getElementById("ai-insights-container");
     if (!container) return;
 
@@ -1604,9 +1604,10 @@ const renderAIAdvisor = (preRound, postRound, pricedConversion, state) => {
         const preMoneyStr = formatUSDWithCommas(preMoney);
 
         const foundersPost = postRound.common.filter((c) => c.category === "Founder");
-        const foundersPre = preRound.common.filter((c) => c.category === "Founder");
         const totalFounderPctPost = foundersPost.reduce((a, f) => a + f.ownershipPct, 0);
-        const totalFounderPctPre = foundersPre.reduce((a, f) => a + f.ownershipPct, 0);
+        
+        // Use the passed strictlyPreFounderPct if available, otherwise fallback (though fallback shouldn't be needed with correct call)
+        const totalFounderPctPre = strictlyPreFounderPct !== undefined ? strictlyPreFounderPct : 0;
 
         // Interpretation sentence
         insights.push(`<p>You are modeling a <strong>${state.roundName}</strong> round raising <strong>${investment}</strong> at a <strong>${preMoneyStr}</strong> pre-money valuation. Founder ownership changes from <strong>${safeFormatPercent(totalFounderPctPre)}</strong> to <strong>${safeFormatPercent(totalFounderPctPost)}</strong> post-round.</p>`);
@@ -1851,6 +1852,13 @@ const normalizeForCapture = (element) => {
         boxShadow: element.style.boxShadow,
         borderRadius: element.style.borderRadius
     };
+
+    // Hide elements with 'no-pdf' class
+    const noPdfElements = element.querySelectorAll('.no-pdf');
+    noPdfElements.forEach(el => {
+        el.setAttribute('data-original-display', el.style.display || '');
+        el.style.display = 'none';
+    });
     
     element.style.position = 'static';
     element.style.top = 'auto';
@@ -1866,6 +1874,13 @@ const normalizeForCapture = (element) => {
 };
 
 const restoreAfterCapture = (element, original) => {
+    // Restore elements with 'no-pdf' class
+    const noPdfElements = element.querySelectorAll('.no-pdf');
+    noPdfElements.forEach(el => {
+        el.style.display = el.getAttribute('data-original-display') || '';
+        el.removeAttribute('data-original-display');
+    });
+
     Object.assign(element.style, original);
 };
 
