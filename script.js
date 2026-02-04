@@ -1853,9 +1853,9 @@ const normalizeForCapture = (element) => {
         borderRadius: element.style.borderRadius
     };
 
-    // Hide elements with 'no-pdf' class
-    const noPdfElements = element.querySelectorAll('.no-pdf');
-    noPdfElements.forEach(el => {
+    // Hide elements with 'no-pdf' class AND ALL buttons (Add, Delete, etc.)
+    const elementsToHide = element.querySelectorAll('.no-pdf, button, .btn-trash, .row-trash-btn');
+    elementsToHide.forEach(el => {
         el.setAttribute('data-original-display', el.style.display || '');
         el.style.display = 'none';
     });
@@ -1874,9 +1874,9 @@ const normalizeForCapture = (element) => {
 };
 
 const restoreAfterCapture = (element, original) => {
-    // Restore elements with 'no-pdf' class
-    const noPdfElements = element.querySelectorAll('.no-pdf');
-    noPdfElements.forEach(el => {
+    // Restore elements
+    const elementsToRestore = element.querySelectorAll('.no-pdf, button, .btn-trash, .row-trash-btn');
+    elementsToRestore.forEach(el => {
         el.style.display = el.getAttribute('data-original-display') || '';
         el.removeAttribute('data-original-display');
     });
@@ -2048,11 +2048,13 @@ async function generateResultsPDF(quality = 0.85, scale = 1.5) {
             yPos += tHeight + 2;
         }
 
+
+
         const table = breakdown.querySelector('table');
         if (table) {
             const thead = table.querySelector('thead');
             if (thead) {
-                const thCanvas = await html2canvas(thead, { backgroundColor: '#f8f8ff', scale: scale });
+                const thCanvas = await html2canvas(thead, { backgroundColor: '#ffffff', scale: scale });
                 const thHeight = (thCanvas.height * contentWidth) / thCanvas.width;
                 if (yPos + thHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
                 doc.addImage(thCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, thHeight);
@@ -2062,7 +2064,7 @@ async function generateResultsPDF(quality = 0.85, scale = 1.5) {
             const tbody = table.querySelector('tbody');
             if (tbody) {
                 for (let row of tbody.children) {
-                    const rCanvas = await html2canvas(row, { backgroundColor: '#f8f8ff', scale: scale });
+                    const rCanvas = await html2canvas(row, { backgroundColor: '#ffffff', scale: scale });
                     const rHeight = (rCanvas.height * contentWidth) / rCanvas.width;
                     if (yPos + rHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
                     doc.addImage(rCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, rHeight);
@@ -2120,7 +2122,7 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
     const inputConfigs = [
         { id: 'cap-table-section', bodyId: 'shareholders-body', footerId: 'cap-table-footer' },
         { id: 'safes-section', bodyId: 'safes-body', footerId: null },
-        { id: 'priced-round-section', bodyId: null, footerId: null }
+        { id: 'priced-round-section', bodyId: null, footerId: null, skipFooter: true }
     ];
 
     for (const config of inputConfigs) {
@@ -2130,7 +2132,9 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
         // Header
         const header = section.querySelector('.card-header');
         if (header) {
-            const hCanvas = await html2canvas(header, { backgroundColor: '#f8f8ff', scale: scale });
+            const hStyles = normalizeForCapture(header);
+            const hCanvas = await html2canvas(header, { backgroundColor: '#ffffff', scale: scale });
+            restoreAfterCapture(header, hStyles);
             const hHeight = (hCanvas.height * contentWidth) / hCanvas.width;
             if (yPos + hHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
             doc.addImage(hCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, hHeight);
@@ -2143,7 +2147,7 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
             if (body) {
                 for (let row of body.children) {
                     const rStyles = normalizeForCapture(row);
-                    const rCanvas = await html2canvas(row, { backgroundColor: '#f8f8ff', scale: scale });
+                    const rCanvas = await html2canvas(row, { backgroundColor: '#ffffff', scale: scale });
                     restoreAfterCapture(row, rStyles);
                     const rHeight = (rCanvas.height * contentWidth) / rCanvas.width;
                     if (yPos + rHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
@@ -2152,24 +2156,32 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
                 }
             }
         } else if (config.id === 'priced-round-section') {
-            const content = section.querySelector('.config-card')?.parentElement || section;
-            const cStyles = normalizeForCapture(content);
-            const cCanvas = await html2canvas(content, { backgroundColor: '#f8f8ff', scale: scale });
-            restoreAfterCapture(content, cStyles);
-            const cHeight = (cCanvas.height * contentWidth) / cCanvas.width;
-            if (yPos + cHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
-            doc.addImage(cCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, cHeight);
-            yPos += cHeight + 2;
+            // Capture children individually to avoid duplication of header and improve pagination
+            const children = Array.from(section.children).filter(child => !child.classList.contains('card-header'));
+            
+            for (const child of children) {
+                const cStyles = normalizeForCapture(child);
+                const cCanvas = await html2canvas(child, { backgroundColor: '#ffffff', scale: scale });
+                restoreAfterCapture(child, cStyles);
+                const cHeight = (cCanvas.height * contentWidth) / cCanvas.width;
+                if (yPos + cHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+                doc.addImage(cCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, cHeight);
+                yPos += cHeight + 2;
+            }
         }
 
         // Footer
-        const footer = config.footerId ? document.getElementById(config.footerId) : section.querySelector('.card-footer-total');
-        if (footer) {
-            const fCanvas = await html2canvas(footer, { backgroundColor: '#f8f8ff', scale: scale });
-            const fHeight = (fCanvas.height * contentWidth) / fCanvas.width;
-            if (yPos + fHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
-            doc.addImage(fCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, fHeight);
-            yPos += fHeight + 10;
+        if (!config.skipFooter) {
+            const footer = config.footerId ? document.getElementById(config.footerId) : section.querySelector('.card-footer-total');
+            if (footer) {
+                const fStyles = normalizeForCapture(footer);
+                const fCanvas = await html2canvas(footer, { backgroundColor: '#ffffff', scale: scale });
+                restoreAfterCapture(footer, fStyles);
+                const fHeight = (fCanvas.height * contentWidth) / fCanvas.width;
+                if (yPos + fHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+                doc.addImage(fCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, fHeight);
+                yPos += fHeight + 10;
+            }
         } else {
             yPos += 8;
         }
@@ -2196,7 +2208,7 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
     if (resultsCard) {
         const cStyles = normalizeForCapture(resultsCard);
         // Ensure export buttons are hidden by 'no-pdf' class logic in normalizeForCapture
-        const cCanvas = await html2canvas(resultsCard, { backgroundColor: '#f8f8ff', scale: scale });
+        const cCanvas = await html2canvas(resultsCard, { backgroundColor: '#ffffff', scale: scale });
         restoreAfterCapture(resultsCard, cStyles);
         const cHeight = (cCanvas.height * contentWidth) / cCanvas.width;
         if (yPos + cHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
@@ -2208,7 +2220,7 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
     const aiAdvisor = document.getElementById('ai-advisor-section');
     if (aiAdvisor) {
         const hStyles = normalizeForCapture(aiAdvisor);
-        const hCanvas = await html2canvas(aiAdvisor, { backgroundColor: '#f8f8ff', scale: scale });
+        const hCanvas = await html2canvas(aiAdvisor, { backgroundColor: '#ffffff', scale: scale });
         restoreAfterCapture(aiAdvisor, hStyles);
         const hHeight = (hCanvas.height * contentWidth) / hCanvas.width;
         if (yPos + hHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
@@ -2222,7 +2234,9 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
         // Subsection Title
         const title = breakdown.querySelector('.subsection-title');
         if (title) {
-            const tCanvas = await html2canvas(title, { backgroundColor: '#f8f8ff', scale: scale });
+            const tStyles = normalizeForCapture(title);
+            const tCanvas = await html2canvas(title, { backgroundColor: '#ffffff', scale: scale });
+            restoreAfterCapture(title, tStyles);
             const tHeight = (tCanvas.height * contentWidth) / tCanvas.width;
             if (yPos + tHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
             doc.addImage(tCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, tHeight);
@@ -2233,7 +2247,9 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
         if (table) {
             const thead = table.querySelector('thead');
             if (thead) {
-                const thCanvas = await html2canvas(thead, { backgroundColor: '#f8f8ff', scale: scale });
+                const thStyles = normalizeForCapture(thead);
+                const thCanvas = await html2canvas(thead, { backgroundColor: '#ffffff', scale: scale });
+                restoreAfterCapture(thead, thStyles);
                 const thHeight = (thCanvas.height * contentWidth) / thCanvas.width;
                 if (yPos + thHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
                 doc.addImage(thCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, thHeight);
@@ -2243,7 +2259,7 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
             const tbody = table.querySelector('tbody');
             if (tbody) {
                 for (let row of tbody.children) {
-                    const rCanvas = await html2canvas(row, { backgroundColor: '#f8f8ff', scale: scale });
+                    const rCanvas = await html2canvas(row, { backgroundColor: '#ffffff', scale: scale });
                     const rHeight = (rCanvas.height * contentWidth) / rCanvas.width;
                     if (yPos + rHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
                     doc.addImage(rCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, rHeight);
@@ -2267,7 +2283,7 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
 // Download PDF
 window.downloadPDF = async function() {
     try {
-        showToast('Generating HQ Report...', 'success');
+        showToast('Generating Report...', 'success');
         
         const dateStr = new Date().toISOString().split('T')[0];
         
