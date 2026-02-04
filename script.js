@@ -2084,27 +2084,202 @@ async function generateResultsPDF(quality = 0.85, scale = 1.5) {
 }
 
 // Download PDF
+// Generate Unified PDF (Inputs + Results)
+async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentWidth = pageWidth - (margin * 2);
+    let yPos = margin;
+    
+    const primaryNavy = '#0d0a40';
+    const textMuted = '#444266';
+    
+    // --- SECTION 1: INPUTS ---
+    
+    // Header
+    doc.setFontSize(20);
+    doc.setTextColor(primaryNavy);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Calculator Inputs', margin, yPos);
+    yPos += 8;
+    
+    doc.setFontSize(8);
+    doc.setTextColor(textMuted);
+    doc.setFont('helvetica', 'normal');
+    const timestamp = new Date().toLocaleString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
+    doc.text(`Generated on ${timestamp}`, margin, yPos);
+    yPos += 10;
+
+    const inputConfigs = [
+        { id: 'cap-table-section', bodyId: 'shareholders-body', footerId: 'cap-table-footer' },
+        { id: 'safes-section', bodyId: 'safes-body', footerId: null },
+        { id: 'priced-round-section', bodyId: null, footerId: null }
+    ];
+
+    for (const config of inputConfigs) {
+        const section = document.getElementById(config.id);
+        if (!section) continue;
+
+        // Header
+        const header = section.querySelector('.card-header');
+        if (header) {
+            const hCanvas = await html2canvas(header, { backgroundColor: '#f8f8ff', scale: scale });
+            const hHeight = (hCanvas.height * contentWidth) / hCanvas.width;
+            if (yPos + hHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+            doc.addImage(hCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, hHeight);
+            yPos += hHeight + 2;
+        }
+
+        // Body
+        if (config.bodyId) {
+            const body = document.getElementById(config.bodyId);
+            if (body) {
+                for (let row of body.children) {
+                    const rStyles = normalizeForCapture(row);
+                    const rCanvas = await html2canvas(row, { backgroundColor: '#f8f8ff', scale: scale });
+                    restoreAfterCapture(row, rStyles);
+                    const rHeight = (rCanvas.height * contentWidth) / rCanvas.width;
+                    if (yPos + rHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+                    doc.addImage(rCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, rHeight);
+                    yPos += rHeight + 2;
+                }
+            }
+        } else if (config.id === 'priced-round-section') {
+            const content = section.querySelector('.config-card')?.parentElement || section;
+            const cStyles = normalizeForCapture(content);
+            const cCanvas = await html2canvas(content, { backgroundColor: '#f8f8ff', scale: scale });
+            restoreAfterCapture(content, cStyles);
+            const cHeight = (cCanvas.height * contentWidth) / cCanvas.width;
+            if (yPos + cHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+            doc.addImage(cCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, cHeight);
+            yPos += cHeight + 2;
+        }
+
+        // Footer
+        const footer = config.footerId ? document.getElementById(config.footerId) : section.querySelector('.card-footer-total');
+        if (footer) {
+            const fCanvas = await html2canvas(footer, { backgroundColor: '#f8f8ff', scale: scale });
+            const fHeight = (fCanvas.height * contentWidth) / fCanvas.width;
+            if (yPos + fHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+            doc.addImage(fCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, fHeight);
+            yPos += fHeight + 10;
+        } else {
+            yPos += 8;
+        }
+    }
+    
+    // --- PAGE BREAK ---
+    doc.addPage();
+    yPos = margin;
+
+    // --- SECTION 2: RESULTS ---
+    
+    // Header
+    doc.setFontSize(20); doc.setTextColor(primaryNavy); doc.setFont('helvetica', 'bold');
+    doc.text('SAFE Calculator Results', margin, yPos);
+    yPos += 8;
+    
+    doc.setFontSize(8); doc.setTextColor(textMuted); doc.setFont('helvetica', 'normal');
+    // Reuse timestamp
+    doc.text(`Generated on ${timestamp}`, margin, yPos);
+    yPos += 10;
+    
+    // 1. Results Summary & Charts
+    const resultsCard = document.getElementById('results-card');
+    if (resultsCard) {
+        const cStyles = normalizeForCapture(resultsCard);
+        // Ensure export buttons are hidden by 'no-pdf' class logic in normalizeForCapture
+        const cCanvas = await html2canvas(resultsCard, { backgroundColor: '#f8f8ff', scale: scale });
+        restoreAfterCapture(resultsCard, cStyles);
+        const cHeight = (cCanvas.height * contentWidth) / cCanvas.width;
+        if (yPos + cHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+        doc.addImage(cCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, cHeight);
+        yPos += cHeight + 10;
+    }
+
+    // 2. AI Advisor Section
+    const aiAdvisor = document.getElementById('ai-advisor-section');
+    if (aiAdvisor) {
+        const hStyles = normalizeForCapture(aiAdvisor);
+        const hCanvas = await html2canvas(aiAdvisor, { backgroundColor: '#f8f8ff', scale: scale });
+        restoreAfterCapture(aiAdvisor, hStyles);
+        const hHeight = (hCanvas.height * contentWidth) / hCanvas.width;
+        if (yPos + hHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+        doc.addImage(hCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, hHeight);
+        yPos += hHeight + 10;
+    }
+
+    // 3. Ownership Breakdown
+    const breakdown = document.getElementById('breakdown-section');
+    if (breakdown) {
+        // Subsection Title
+        const title = breakdown.querySelector('.subsection-title');
+        if (title) {
+            const tCanvas = await html2canvas(title, { backgroundColor: '#f8f8ff', scale: scale });
+            const tHeight = (tCanvas.height * contentWidth) / tCanvas.width;
+            if (yPos + tHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+            doc.addImage(tCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, tHeight);
+            yPos += tHeight + 2;
+        }
+
+        const table = breakdown.querySelector('table');
+        if (table) {
+            const thead = table.querySelector('thead');
+            if (thead) {
+                const thCanvas = await html2canvas(thead, { backgroundColor: '#f8f8ff', scale: scale });
+                const thHeight = (thCanvas.height * contentWidth) / thCanvas.width;
+                if (yPos + thHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+                doc.addImage(thCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, thHeight);
+                yPos += thHeight;
+            }
+
+            const tbody = table.querySelector('tbody');
+            if (tbody) {
+                for (let row of tbody.children) {
+                    const rCanvas = await html2canvas(row, { backgroundColor: '#f8f8ff', scale: scale });
+                    const rHeight = (rCanvas.height * contentWidth) / rCanvas.width;
+                    if (yPos + rHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+                    doc.addImage(rCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, rHeight);
+                    yPos += rHeight;
+                }
+            }
+        }
+    }
+    
+    // Page Numbers
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(7);
+        doc.setTextColor('#9ca3af');
+        doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+    }
+    return doc;
+}
+
+// Download PDF
 window.downloadPDF = async function() {
     try {
-        showToast('Generating PDFs...', 'success');
+        showToast('Generating HQ Report...', 'success');
         
         const dateStr = new Date().toISOString().split('T')[0];
         
-        // Generate and download Calculator Inputs PDF
-        const inputsPDF = await generateInputsPDF();
-        inputsPDF.save(`SAFE_Calculator_Inputs_${dateStr}.pdf`);
+        // Generate unified PDF with high quality but optimized scale
+        const doc = await generateCombinedPDF(0.8, 1.5);
         
-        // Small delay between downloads
-        await new Promise(resolve => setTimeout(resolve, 500));
+        doc.save(`SAFE_Calculator_Report_${dateStr}.pdf`);
         
-        // Generate and download Results PDF
-        const resultsPDF = await generateResultsPDF();
-        resultsPDF.save(`SAFE_Calculator_Results_${dateStr}.pdf`);
-        
-        showToast('PDFs downloaded successfully!', 'success');
+        showToast('Report Downloaded!', 'success');
     } catch (error) {
-        console.error('Error generating PDFs:', error);
-        showToast('Failed to generate PDFs. Please try again.', 'error');
+        console.error("PDF Generation Error:", error);
+        showToast('Error generating PDF', 'error');
     }
 };
 
