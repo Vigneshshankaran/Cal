@@ -965,8 +965,12 @@ const renderSAFEs = () => {
     const showDelete = safeRows.length > 1;
     let totalInv = 0;
     
-    safeRows.forEach((row) => {
+    safeRows.forEach((row, idx) => {
         totalInv += row.investment;
+        const isMfnRow = isMFN(row);
+        const effectiveCap = getCapForSafe(idx, safeRows);
+        const displayCap = isMfnRow ? effectiveCap : row.cap;
+        
         const card = document.createElement("div");
         card.className = "input-row-card";
         card.innerHTML = `
@@ -987,7 +991,8 @@ const renderSAFEs = () => {
                     <label class="field-label">Valuation Cap</label>
                     <div class="input-with-symbol">
                         <span class="input-symbol">$</span>
-                        <input class="input row-input-right" type="text" value="${formatNumberWithCommas(row.cap)}" 
+                        <input class="input row-input-right" type="text" value="${formatNumberWithCommas(displayCap)}" 
+                            ${isMfnRow ? 'readonly' : ''}
                             oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'cap', this.value)" />
                     </div>
                 </div>
@@ -1262,23 +1267,13 @@ const renderBreakdownTable = (preData, postData, pps) => {
         let tagsHtml = "";
 
         if (post.isPricedOrSafe && post.category === "SAFE Converter") {
-
             if (post.isMFN) {
-
-                tagsHtml += `<span class="tag tag-mfn">MFN</span>`;
-
-                tagsHtml += `<span class="tag tag-post">Post-money SAFE</span>`; 
-
+                tagsHtml += `<span class="tag tag-mfn">MFN SAFE</span>`;
             } else if (post.conversionType === "pre") {
-
                 tagsHtml += `<span class="tag tag-pre">Pre-money SAFE</span>`;
-
             } else {
-
                 tagsHtml += `<span class="tag tag-post">Post-money SAFE</span>`;
-
             }
-
         }
 
         if (post.id === "UnusedOptionsPool" && postSharesValid && pre.shares >= 0) {
@@ -1767,7 +1762,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Initialize EmailJS with your public key
     // IMPORTANT: Replace 'YOUR_PUBLIC_KEY' with your actual EmailJS public key
-    emailjs.init('YOUR_PUBLIC_KEY');
+    emailjs.init('V8pjM2we5Yatik57k');
 });
 
 // ============================================
@@ -1874,8 +1869,8 @@ const restoreAfterCapture = (element, original) => {
     Object.assign(element.style, original);
 };
 
-// Generate PDF for Calculator Inputs (calculator-column) - Smart Pagination & Slicing
-async function generateInputsPDF() {
+// Generate PDF for Calculator Inputs (calculator-column) - Row-Aware & Parameterized
+async function generateInputsPDF(quality = 0.85, scale = 2) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
     
@@ -1899,89 +1894,71 @@ async function generateInputsPDF() {
     doc.setTextColor(textMuted);
     doc.setFont('helvetica', 'normal');
     const timestamp = new Date().toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        year: 'numeric', month: 'long', day: 'numeric',
+        hour: '2-digit', minute: '2-digit'
     });
     doc.text(`Generated on ${timestamp}`, margin, yPos);
     yPos += 10;
 
-    const sections = [
-        { id: 'cap-table-section', name: 'Cap Table' },
-        { id: 'safes-section', name: 'SAFE Terms' },
-        { id: 'priced-round-section', name: 'Priced Round' }
+    const sectionConfigs = [
+        { id: 'cap-table-section', bodyId: 'shareholders-body', footerId: 'cap-table-footer' },
+        { id: 'safes-section', bodyId: 'safes-body', footerId: null },
+        { id: 'priced-round-section', bodyId: null, footerId: null }
     ];
 
-    for (const sectionInfo of sections) {
-        const section = document.getElementById(sectionInfo.id);
+    for (const config of sectionConfigs) {
+        const section = document.getElementById(config.id);
         if (!section) continue;
 
-        try {
-            // Hide buttons
-            const buttons = section.querySelectorAll('.btn-primary');
-            buttons.forEach(btn => btn.style.visibility = 'hidden');
-            
-            const originalStyles = normalizeForCapture(section);
-            
-            const canvas = await html2canvas(section, {
-                backgroundColor: '#f8f8ff',
-                scale: 2,
-                logging: false,
-                useCORS: true,
-                allowTaint: true
-            });
-            
-            buttons.forEach(btn => btn.style.visibility = 'visible');
-            restoreAfterCapture(section, originalStyles);
-            
-            const imgWidth = contentWidth;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        // 1. Capture Section Header
+        const header = section.querySelector('.card-header');
+        if (header) {
+            const hCanvas = await html2canvas(header, { backgroundColor: '#f8f8ff', scale: scale });
+            const hHeight = (hCanvas.height * contentWidth) / hCanvas.width;
+            if (yPos + hHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+            doc.addImage(hCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, hHeight);
+            yPos += hHeight + 2;
+        }
 
-            // Check if section needs to start on a new page (Smart Pagination)
-            if (yPos + imgHeight > pageHeight - margin && yPos > margin + 20) {
-                doc.addPage();
-                yPos = margin;
-            }
-
-            // Slicing Logic for sections taller than the available space
-            let remainingHeight = imgHeight;
-            let sourceY = 0;
-            
-            while (remainingHeight > 0) {
-                const availableSpace = pageHeight - yPos - margin;
-                const heightToDraw = Math.min(remainingHeight, availableSpace);
-                const sourceHeightPx = (heightToDraw / imgWidth) * canvas.width;
-                
-                // Create a temporary canvas for this slice
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = canvas.width;
-                tempCanvas.height = sourceHeightPx;
-                const tempCtx = tempCanvas.getContext('2d');
-                tempCtx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeightPx, 0, 0, canvas.width, sourceHeightPx);
-                
-                const sliceImgData = tempCanvas.toDataURL('image/jpeg', 0.85);
-                doc.addImage(sliceImgData, 'JPEG', margin, yPos, imgWidth, heightToDraw);
-                
-                remainingHeight -= heightToDraw;
-                sourceY += sourceHeightPx;
-                yPos += heightToDraw;
-
-                if (remainingHeight > 0.1) { // 0.1mm threshold for floating point errors
-                    doc.addPage();
-                    yPos = margin;
+        // 2. Capture Section Body (Row by Row)
+        if (config.bodyId) {
+            const body = document.getElementById(config.bodyId);
+            if (body) {
+                for (let row of body.children) {
+                    const rStyles = normalizeForCapture(row);
+                    const rCanvas = await html2canvas(row, { backgroundColor: '#f8f8ff', scale: scale });
+                    restoreAfterCapture(row, rStyles);
+                    const rHeight = (rCanvas.height * contentWidth) / rCanvas.width;
+                    if (yPos + rHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+                    doc.addImage(rCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, rHeight);
+                    yPos += rHeight + 2;
                 }
             }
-            
-            yPos += 10; // Extra spacing after section
+        } else if (config.id === 'priced-round-section') {
+            const content = section.querySelector('.config-card')?.parentElement || section;
+            const cStyles = normalizeForCapture(content);
+            const cCanvas = await html2canvas(content, { backgroundColor: '#f8f8ff', scale: scale });
+            restoreAfterCapture(content, cStyles);
+            const cHeight = (cCanvas.height * contentWidth) / cCanvas.width;
+            if (yPos + cHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+            doc.addImage(cCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, cHeight);
+            yPos += cHeight + 2;
+        }
 
-        } catch (error) {
-            console.error(`Error capturing ${sectionInfo.name}:`, error);
+        // 3. Capture Section Footer
+        const footer = config.footerId ? document.getElementById(config.footerId) : section.querySelector('.card-footer-total');
+        if (footer) {
+            const fCanvas = await html2canvas(footer, { backgroundColor: '#f8f8ff', scale: scale });
+            const fHeight = (fCanvas.height * contentWidth) / fCanvas.width;
+            if (yPos + fHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+            doc.addImage(fCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, fHeight);
+            yPos += fHeight + 10;
+        } else {
+            yPos += 8;
         }
     }
     
-    // Footer
+    // Page Numbers
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -1989,12 +1966,11 @@ async function generateInputsPDF() {
         doc.setTextColor('#9ca3af');
         doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
     }
-    
     return doc;
 }
 
-// Generate PDF for Results (results-column) - Smart Pagination & Slicing
-async function generateResultsPDF() {
+// Generate PDF for Results (results-column) - Row-Aware & Parameterized
+async function generateResultsPDF(quality = 0.85, scale = 1.5) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
     
@@ -2008,93 +1984,80 @@ async function generateResultsPDF() {
     const textMuted = '#444266';
     
     // Header
-    doc.setFontSize(20);
-    doc.setTextColor(primaryNavy);
-    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20); doc.setTextColor(primaryNavy); doc.setFont('helvetica', 'bold');
     doc.text('SAFE Calculator Results', margin, yPos);
     yPos += 8;
     
-    doc.setFontSize(8);
-    doc.setTextColor(textMuted);
-    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8); doc.setTextColor(textMuted); doc.setFont('helvetica', 'normal');
     const timestamp = new Date().toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        year: 'numeric', month: 'long', day: 'numeric',
+        hour: '2-digit', minute: '2-digit'
     });
     doc.text(`Generated on ${timestamp}`, margin, yPos);
     yPos += 10;
     
-    const sections = [
-        { id: 'results-card', name: 'Results Summary' },
-        { id: 'ai-advisor-section', name: 'AI Equity Advisor' },
-        { id: 'breakdown-section', name: 'Ownership Breakdown' }
-    ];
+    // 1. Results Summary & Charts
+    const resultsCard = document.getElementById('results-card');
+    if (resultsCard) {
+        const cStyles = normalizeForCapture(resultsCard);
+        const cCanvas = await html2canvas(resultsCard, { backgroundColor: '#f8f8ff', scale: scale });
+        restoreAfterCapture(resultsCard, cStyles);
+        const cHeight = (cCanvas.height * contentWidth) / cCanvas.width;
+        if (yPos + cHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+        doc.addImage(cCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, cHeight);
+        yPos += cHeight + 10;
+    }
 
-    for (const sectionInfo of sections) {
-        const section = document.getElementById(sectionInfo.id);
-        if (!section) continue;
+    // 2. AI Advisor Section
+    const aiAdvisor = document.getElementById('ai-advisor-section');
+    if (aiAdvisor) {
+        const hStyles = normalizeForCapture(aiAdvisor);
+        const hCanvas = await html2canvas(aiAdvisor, { backgroundColor: '#f8f8ff', scale: scale });
+        restoreAfterCapture(aiAdvisor, hStyles);
+        const hHeight = (hCanvas.height * contentWidth) / hCanvas.width;
+        if (yPos + hHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+        doc.addImage(hCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, hHeight);
+        yPos += hHeight + 10;
+    }
 
-        try {
-            const originalStyles = normalizeForCapture(section);
-            
-            const canvas = await html2canvas(section, {
-                backgroundColor: '#f8f8ff',
-                scale: 1.5,
-                logging: false,
-                useCORS: true,
-                allowTaint: true
-            });
-            
-            restoreAfterCapture(section, originalStyles);
-            
-            const imgWidth = contentWidth;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    // 3. Ownership Breakdown (Table with Row-Aware Capture)
+    const breakdown = document.getElementById('breakdown-section');
+    if (breakdown) {
+        // Subsection Title
+        const title = breakdown.querySelector('.subsection-title');
+        if (title) {
+            const tCanvas = await html2canvas(title, { backgroundColor: '#f8f8ff', scale: scale });
+            const tHeight = (tCanvas.height * contentWidth) / tCanvas.width;
+            if (yPos + tHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+            doc.addImage(tCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, tHeight);
+            yPos += tHeight + 2;
+        }
 
-            // Smart Pagination: Start on new page if it won't fit (unless already top of page)
-            if (yPos + imgHeight > pageHeight - margin && yPos > margin + 20) {
-                doc.addPage();
-                yPos = margin;
+        const table = breakdown.querySelector('table');
+        if (table) {
+            const thead = table.querySelector('thead');
+            if (thead) {
+                const thCanvas = await html2canvas(thead, { backgroundColor: '#f8f8ff', scale: scale });
+                const thHeight = (thCanvas.height * contentWidth) / thCanvas.width;
+                if (yPos + thHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+                doc.addImage(thCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, thHeight);
+                yPos += thHeight;
             }
 
-            // Slicing Logic for oversized sections
-            let remainingHeight = imgHeight;
-            let sourceY = 0;
-            
-            while (remainingHeight > 0) {
-                const availableSpace = pageHeight - yPos - margin;
-                const heightToDraw = Math.min(remainingHeight, availableSpace);
-                const sourceHeightPx = (heightToDraw / imgWidth) * canvas.width;
-                
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = canvas.width;
-                tempCanvas.height = sourceHeightPx;
-                const tempCtx = tempCanvas.getContext('2d');
-                tempCtx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeightPx, 0, 0, canvas.width, sourceHeightPx);
-                
-                const sliceImgData = tempCanvas.toDataURL('image/jpeg', 0.85);
-                doc.addImage(sliceImgData, 'JPEG', margin, yPos, imgWidth, heightToDraw);
-                
-                remainingHeight -= heightToDraw;
-                sourceY += sourceHeightPx;
-                yPos += heightToDraw;
-
-                if (remainingHeight > 0.1) {
-                    doc.addPage();
-                    yPos = margin;
+            const tbody = table.querySelector('tbody');
+            if (tbody) {
+                for (let row of tbody.children) {
+                    const rCanvas = await html2canvas(row, { backgroundColor: '#f8f8ff', scale: scale });
+                    const rHeight = (rCanvas.height * contentWidth) / rCanvas.width;
+                    if (yPos + rHeight > pageHeight - margin) { doc.addPage(); yPos = margin; }
+                    doc.addImage(rCanvas.toDataURL('image/jpeg', quality), 'JPEG', margin, yPos, contentWidth, rHeight);
+                    yPos += rHeight;
                 }
             }
-            
-            yPos += 10;
-
-        } catch (error) {
-            console.error(`Error capturing ${sectionInfo.name}:`, error);
         }
     }
     
-    // Footer
+    // Page Numbers
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -2102,7 +2065,6 @@ async function generateResultsPDF() {
         doc.setTextColor('#9ca3af');
         doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
     }
-    
     return doc;
 }
 
@@ -2131,7 +2093,7 @@ window.downloadPDF = async function() {
     }
 };
 
-// Send Email with PDF
+// Send Email with PDF attachment - Re-optimized for 50KB limit
 window.sendEmailWithPDF = async function() {
     const emailInput = document.getElementById('email-input');
     const errorSpan = document.getElementById('email-error');
@@ -2141,65 +2103,78 @@ window.sendEmailWithPDF = async function() {
     
     const email = emailInput.value.trim();
     
-    // Validate email
-    if (!email) {
-        errorSpan.textContent = 'Please enter an email address';
-        errorSpan.style.display = 'block';
-        return;
-    }
-    
-    if (!validateEmail(email)) {
+    if (!email || !validateEmail(email)) {
         errorSpan.textContent = 'Please enter a valid email address';
         errorSpan.style.display = 'block';
         return;
     }
     
     errorSpan.style.display = 'none';
-    
-    // Show loading state
     sendBtn.disabled = true;
     btnText.style.display = 'none';
     btnLoader.style.display = 'inline-flex';
     
     try {
-        // Get current results data
+        let pdfBase64 = "";
+        let finalSize = 0;
+        
+        // Multi-pass compression to fit strictly under EmailJS limits
+        // Every variable sent to EmailJS counts towards the 50KB total.
+        // We aim for < 40,000 characters for the PDF to leave room for other data.
+        const configs = [
+            { scale: 0.8, qual: 0.4 }, // Pass 1
+            { scale: 0.6, qual: 0.2 }, // Pass 2
+            { scale: 0.4, qual: 0.1 }, // Pass 3
+            { scale: 0.2, qual: 0.1 }  // Pass 4 (Extreme)
+        ];
+
+        for (let i = 0; i < configs.length; i++) {
+            const config = configs[i];
+            const doc = await generateResultsPDF(config.qual, config.scale);
+            pdfBase64 = doc.output('datauristring').split(',')[1];
+            finalSize = pdfBase64.length;
+            
+            if (finalSize <= 40000) break;
+            console.warn(`Email PDF Pass ${i+1} too large (${finalSize} chars). Retrying...`);
+        }
+
+        if (finalSize > 40000) {
+            throw new Error(`Report is too complex for email (${Math.round(finalSize/1024)}KB). Please use "Download PDF" instead.`);
+        }
+
         const founderOwnership = document.getElementById('founder-ownership-val').textContent;
         const founderDilution = document.getElementById('founder-dilution-val').textContent;
         const postMoney = document.getElementById('post-money-val').textContent;
         const pps = document.getElementById('round-pps-val').textContent;
         const totalShares = document.getElementById('total-post-shares-val').textContent;
         
-        // Send email using EmailJS with results summary
         const templateParams = {
             to_email: email,
+            recipient_email: email,
+            user_email: email,
             to_name: email.split('@')[0],
             founder_ownership: founderOwnership,
             founder_dilution: founderDilution,
             post_money: postMoney,
             price_per_share: pps,
             total_shares: totalShares,
+            content: pdfBase64,
             timestamp: new Date().toLocaleString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+                year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit'
             })
         };
         
-        await emailjs.send(
-            'YOUR_SERVICE_ID',  // Replace with your EmailJS service ID
-            'YOUR_TEMPLATE_ID', // Replace with your EmailJS template ID
-            templateParams
-        );
+        await emailjs.send('service_xwc1meo', 'template_uqr76tn', templateParams);
         
         hideEmailModal();
-        showToast('Email sent successfully! Check your inbox.', 'success');
+        showToast('Success! Your report has been sent.', 'success');
     } catch (error) {
-        console.error('Error sending email:', error);
-        showToast(`Failed to send email: ${error.text || error.message || 'Please check your EmailJS configuration'}`, 'error');
+        console.error('Email Error:', error);
+        // EmailJS often returns errors in .text property, not .message
+        const errorMessage = error.text || error.message || 'Check EmailJS config (50KB Limit)';
+        showToast(errorMessage, 'error');
     } finally {
-        // Reset button state
         sendBtn.disabled = false;
         btnText.style.display = 'inline';
         btnLoader.style.display = 'none';
