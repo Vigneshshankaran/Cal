@@ -2842,12 +2842,13 @@ table .percentage-input-wrapper .percentage-suffix {
 
 .modal-dialog {
   background: var(--bg-card);
-  border-radius: 12px;
+  border-radius: 16px; /* Slightly more rounded */
   width: 90%;
-  max-width: 480px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  animation: slideUp 0.3s ease;
+  max-width: 500px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  border: 1px solid var(--border-fintech);
 }
 
 @keyframes slideUp {
@@ -2898,20 +2899,31 @@ table .percentage-input-wrapper .percentage-suffix {
 }
 
 .modal-body {
-  padding: 24px;
+  padding: 32px;
 }
 
-.modal-description {
+.modal-subtitle {
   font-size: 14px;
-  color: var(--text-muted);
-  margin-bottom: 20px;
+  color: var(--text-light);
+  margin-top: 4px;
 }
 
-.modal-footer {
+.modal-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.modal-footer-actions {
   display: flex;
+  flex-direction: column;
   gap: 12px;
-  padding: 16px 24px 24px 24px;
-  border-top: 1px solid var(--border-fintech);
+}
+
+.modal-header div {
+    display: flex;
+    flex-direction: column;
 }
 
 .modal-footer .btn-export {
@@ -2992,4 +3004,3 @@ table .percentage-input-wrapper .percentage-suffix {
     bottom: 16px;
   }
 }
-

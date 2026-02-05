@@ -1,19 +1,20 @@
+(function() {
 const CapTableRowType = {
-    Common: "common",           
-    Safe: "safe",               
-    Series: "series",           
-    Total: "total",             
-    RefreshedOptions: "refreshedOptions", 
+    Common: "common",
+    Safe: "safe",
+    Series: "series",
+    Total: "total",
+    RefreshedOptions: "refreshedOptions",
 };
 
 const CommonRowType = {
-    Shareholder: "shareholder", 
-    UnusedOptions: "unusedOptions", 
+    Shareholder: "shareholder",
+    UnusedOptions: "unusedOptions",
 };
 
 const DEFAULT_ROUNDING_STRATEGY = {
-    roundShares: true,    
-    roundPPSPlaces: 8,    
+    roundShares: true,
+    roundPPSPlaces: 8,
 };
 
 const stringToNumber = (value) => {
@@ -84,13 +85,10 @@ const safeFormatPPS = (value) => {
 
 const formatInputLive = (input, isCurrency = false) => {
     let value = input.value;
-    
-    // Save cursor position
     const start = input.selectionStart;
     const oldLength = value.length;
 
     if (isCurrency) {
-        // Remove everything except digits
         let digits = value.replace(/\D/g, "");
         if (digits === "") {
             input.value = "0";
@@ -98,7 +96,6 @@ const formatInputLive = (input, isCurrency = false) => {
             input.value = formatNumberWithCommas(parseInt(digits));
         }
     } else {
-        // Remove everything except digits
         let digits = value.replace(/\D/g, "");
         if (digits === "") {
             input.value = "0";
@@ -107,19 +104,18 @@ const formatInputLive = (input, isCurrency = false) => {
         }
     }
 
-    // Restore cursor position
     const newLength = input.value.length;
     const diff = newLength - oldLength;
-    const newPos = Math.max(0, cursorPos + diff);
+    const newPos = Math.max(0, start + diff);
     input.setSelectionRange(newPos, newPos);
 };
 
 window.formatInputLive = formatInputLive;
 
 const roundShares = (num, strategy = DEFAULT_ROUNDING_STRATEGY) => {
-    if (strategy.roundDownShares) return Math.floor(num);  
-    if (strategy.roundShares) return Math.round(num);      
-    return num;  
+    if (strategy.roundDownShares) return Math.floor(num);
+    if (strategy.roundShares) return Math.round(num);
+    return num;
 };
 
 const roundPPSToPlaces = (num, places) => {
@@ -674,7 +670,6 @@ const TRASH_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="1
 
 const updateUI = () => {
     try {
-        console.log("updateUI called", state);
         clearGlobalErrors();
 
         if (state.preMoney <= 0) {
@@ -798,7 +793,7 @@ const updateUI = () => {
 
         );
 
-        console.log("Priced Conversion Result:", pricedConversion);
+
 
         const roundPpsEl = document.getElementById("round-pps-val");
 
@@ -1287,7 +1282,7 @@ const renderBreakdownTable = (preData, postData, pps) => {
         }
 
         const tr = document.createElement("tr");
-        tr.className = "group investor-row"; /* Added investor-row for styling */
+        tr.className = "group investor-row";
         tr.id = `row-${id}`;
 
         tr.innerHTML = `
@@ -1390,7 +1385,7 @@ const renderPieChart = (postRound) => {
                 backgroundColor: backgroundColors,
                 borderWidth: 2,
                 borderColor: "#ffffff",
-                hoverOffset: 15 /* Increased for sector expansion effect */
+                hoverOffset: 15
             }]
         },
         options: {
@@ -1478,7 +1473,7 @@ const renderPieChart = (postRound) => {
     });
 };
 
-/* Removed dead old_renderPieChart_removed */
+
 
 const renderBarChart = (preFounderPct, postFounderPct) => {
     const container = document.getElementById("bar-chart-container");
@@ -1530,7 +1525,7 @@ const renderBarChart = (preFounderPct, postFounderPct) => {
                         callback: (value) => value + "%",
                         font: { size: 11, family: "'Inter', sans-serif" },
                         color: '#64748B',
-                        // Hide ticks if container is too small
+
                         display: (context) => context.chart.height > 100
                     }
                 },
@@ -1539,7 +1534,7 @@ const renderBarChart = (preFounderPct, postFounderPct) => {
                     ticks: {
                         font: { size: 12, family: "'Inter', sans-serif", weight: '500' },
                         color: '#475569',
-                        // Hide labels if container is too narrow
+
                         display: (context) => context.chart.width > 120
                     }
                 }
@@ -1563,21 +1558,21 @@ const renderBarChart = (preFounderPct, postFounderPct) => {
         }
     });
 
-    // Add summary text below bar chart
+
     const summaryText = document.createElement("div");
     summaryText.className = "chart-summary-text";
     summaryText.innerHTML = `${(preFounderPct * 100).toFixed(1)}% &rarr; ${(postFounderPct * 100).toFixed(1)}%`;
     container.appendChild(summaryText);
 };
 
-// Global Loading State
+
 let aiLoadingTimeout = null;
 
 const renderAIAdvisor = (preRound, postRound, pricedConversion, state, strictlyPreFounderPct) => {
     const container = document.getElementById("ai-insights-container");
     if (!container) return;
 
-    // Clear any pending timeout to prevent race conditions
+
     if (aiLoadingTimeout) clearTimeout(aiLoadingTimeout);
 
     const newMoneyRaised = pricedConversion.totalSeriesInvestment;
@@ -1588,7 +1583,7 @@ const renderAIAdvisor = (preRound, postRound, pricedConversion, state, strictlyP
         return;
     }
 
-    // Show Skeleton Loader Immediately
+
     container.innerHTML = `
         <div class="ai-skeleton-loader">
             <div class="ai-skeleton-line" style="width: 100%;"></div>
@@ -1597,7 +1592,7 @@ const renderAIAdvisor = (preRound, postRound, pricedConversion, state, strictlyP
         </div>
     `;
 
-    // Delay actual rendering to simulate "thinking"
+
     aiLoadingTimeout = setTimeout(() => {
         const insights = [];
         const investment = formatUSDWithCommas(newMoneyRaised);
@@ -1605,11 +1600,8 @@ const renderAIAdvisor = (preRound, postRound, pricedConversion, state, strictlyP
 
         const foundersPost = postRound.common.filter((c) => c.category === "Founder");
         const totalFounderPctPost = foundersPost.reduce((a, f) => a + f.ownershipPct, 0);
-        
-        // Use the passed strictlyPreFounderPct if available, otherwise fallback (though fallback shouldn't be needed with correct call)
         const totalFounderPctPre = strictlyPreFounderPct !== undefined ? strictlyPreFounderPct : 0;
 
-        // Interpretation sentence
         insights.push(`<p>You are modeling a <strong>${state.roundName}</strong> round raising <strong>${investment}</strong> at a <strong>${preMoneyStr}</strong> pre-money valuation. Founder ownership changes from <strong>${safeFormatPercent(totalFounderPctPre)}</strong> to <strong>${safeFormatPercent(totalFounderPctPost)}</strong> post-round.</p>`);
 
         const safesCount = state.rowData.filter(r => r.type === CapTableRowType.Safe).length;
@@ -1635,83 +1627,46 @@ const renderAIAdvisor = (preRound, postRound, pricedConversion, state, strictlyP
             `);
         }
         container.innerHTML = insights.join("");
-    }, 1000); // 1.0 second delay
+    }, 1000);
 };
 
 window.updateRow = (id, field, value) => {
-
     const row = state.rowData.find((r) => r.id === id);
-
     if (!row) return;
-
     if (field === "shares" || field === "investment" || field === "cap") {
-
         row[field] = stringToNumber(value);
-
     } else if (field === "discount") {
-
         row[field] = stringToNumber(value) / 100;
-
     } else {
-
         row[field] = value;
-
     }
-
     updateUI();
-
 };
 
 window.addRow = (type) => {
-
-    const id =
-
-        Date.now().toString() + "-" + Math.random().toString(36).substr(2, 9);
-
+    const id = Date.now().toString() + "-" + Math.random().toString(36).substr(2, 9);
     if (type === "common") {
-
         state.rowData.push({
-
             id,
-
             type,
-
             name: "New Shareholder",
-
             shares: 0,
-
             category: "Investor",
-
         });
-
     } else if (type === CapTableRowType.Safe) {
-
         state.rowData.push({
-
             id,
-
             type,
-
             name: "New SAFE",
-
             investment: 0,
-
             cap: 0,
-
             discount: 0,
-
             conversionType: "post",
-
         });
-
     } else if (type === CapTableRowType.Series) {
-
         state.rowData.push({ id, type, name: "New Investor", investment: 0 });
-
     }
-
     updateUI();
-
 };
 
 window.deleteRow = (id) => {
@@ -1748,7 +1703,6 @@ window.togglePricedRound = () => {
     updateUI();
 };
 
-
 window.updateGlobal = (field, value) => {
     if (field === "preMoney" || field === "targetOptionsPool") {
         state[field] = stringToNumber(value);
@@ -1758,15 +1712,20 @@ window.updateGlobal = (field, value) => {
     updateUI();
 };
 
+window.initSAFEApp = () => {
+    try {
+        updateUI();
+    } catch (e) {
+        console.error("Initialization error:", e);
+    }
+};
+
 document.addEventListener("DOMContentLoaded", () => {
-    updateUI();
+    if (!window.manualInitSAFE) {
+        window.initSAFEApp();
+    }
 });
 
-// ============================================
-// PDF EXPORT & EMAIL FUNCTIONALITY
-// ============================================
-
-// Helper function to show toast notifications
 function showToast(message, type = 'success') {
     const toast = document.getElementById('toast-notification');
     toast.textContent = message;
@@ -1778,36 +1737,37 @@ function showToast(message, type = 'success') {
     }, 4000);
 }
 
-// Email validation
 function validateEmail(email) {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
 }
 
-// Show/Hide Email Modal
 window.showEmailModal = function() {
     const modal = document.getElementById('email-modal');
+    if (!modal) {
+        console.error("Email modal element (#email-modal) not found. Ensure it exists in your Webflow project.");
+        return;
+    }
     const nameInput = document.getElementById('name-input');
     const emailInput = document.getElementById('email-input');
     const errorSpan = document.getElementById('email-error');
     
     if (nameInput) nameInput.value = '';
-    emailInput.value = '';
-    errorSpan.style.display = 'none';
+    if (emailInput) emailInput.value = '';
+    if (errorSpan) errorSpan.style.display = 'none';
     modal.style.display = 'flex';
     
     setTimeout(() => {
         if (nameInput) nameInput.focus();
-        else emailInput.focus();
+        else if (emailInput) emailInput.focus();
     }, 100);
 };
 
 window.hideEmailModal = function() {
     const modal = document.getElementById('email-modal');
-    modal.style.display = 'none';
+    if (modal) modal.style.display = 'none';
 };
 
-// Helper to normalize styles for high-quality capture
 const normalizeForCapture = (element) => {
     const original = {
         position: element.style.position,
@@ -1821,7 +1781,6 @@ const normalizeForCapture = (element) => {
         borderRadius: element.style.borderRadius
     };
 
-    // Hide elements with 'no-pdf' class AND ALL buttons (Add, Delete, etc.)
     const elementsToHide = element.querySelectorAll('.no-pdf, button, .btn-trash, .row-trash-btn');
     elementsToHide.forEach(el => {
         el.setAttribute('data-original-display', el.style.display || '');
@@ -1842,7 +1801,6 @@ const normalizeForCapture = (element) => {
 };
 
 const restoreAfterCapture = (element, original) => {
-    // Restore elements
     const elementsToRestore = element.querySelectorAll('.no-pdf, button, .btn-trash, .row-trash-btn');
     elementsToRestore.forEach(el => {
         el.style.display = el.getAttribute('data-original-display') || '';
@@ -1852,10 +1810,23 @@ const restoreAfterCapture = (element, original) => {
     Object.assign(element.style, original);
 };
 
+const checkPDFDependencies = () => {
+    const hasJsPDF = !!(window.jspdf && window.jspdf.jsPDF);
+    const hasHtml2Canvas = !!window.html2canvas;
 
-// Download PDF
-// Generate Unified PDF (Inputs + Results)
+    if (!hasJsPDF) {
+        alert("Pdf download failed: jsPDF library not found. Please ensure the jsPDF script is included in your Webflow page settings.");
+        console.error("Dependency Missing: jsPDF");
+    }
+    if (!hasHtml2Canvas) {
+        alert("Pdf download failed: html2canvas library not found. Please ensure the html2canvas script is included in your Webflow page settings.");
+        console.error("Dependency Missing: html2canvas");
+    }
+    return hasJsPDF && hasHtml2Canvas;
+};
+
 async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
+    if (!checkPDFDependencies()) return null;
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
     
@@ -1868,9 +1839,6 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
     const primaryNavy = '#0d0a40';
     const textMuted = '#444266';
     
-    // --- SECTION 1: INPUTS ---
-    
-    // Header
     doc.setFontSize(20);
     doc.setTextColor(primaryNavy);
     doc.setFont('helvetica', 'bold');
@@ -1897,7 +1865,6 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
         const section = document.getElementById(config.id);
         if (!section) continue;
 
-        // Header
         const header = section.querySelector('.card-header');
         if (header) {
             const hStyles = normalizeForCapture(header);
@@ -1909,7 +1876,6 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
             yPos += hHeight + 2;
         }
 
-        // Body
         if (config.bodyId) {
             const body = document.getElementById(config.bodyId);
             if (body) {
@@ -1924,7 +1890,6 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
                 }
             }
         } else if (config.id === 'priced-round-section') {
-            // Capture children individually to avoid duplication of header and improve pagination
             const children = Array.from(section.children).filter(child => !child.classList.contains('card-header'));
             
             for (const child of children) {
@@ -1938,7 +1903,6 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
             }
         }
 
-        // Footer
         if (!config.skipFooter) {
             const footer = config.footerId ? document.getElementById(config.footerId) : section.querySelector('.card-footer-total');
             if (footer) {
@@ -1955,27 +1919,20 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
         }
     }
     
-    // --- PAGE BREAK ---
     doc.addPage();
     yPos = margin;
 
-    // --- SECTION 2: RESULTS ---
-    
-    // Header
     doc.setFontSize(20); doc.setTextColor(primaryNavy); doc.setFont('helvetica', 'bold');
     doc.text('SAFE Calculator Results', margin, yPos);
     yPos += 8;
     
     doc.setFontSize(8); doc.setTextColor(textMuted); doc.setFont('helvetica', 'normal');
-    // Reuse timestamp
     doc.text(`Generated on ${timestamp}`, margin, yPos);
     yPos += 10;
     
-    // 1. Results Summary & Charts
     const resultsCard = document.getElementById('results-card');
     if (resultsCard) {
         const cStyles = normalizeForCapture(resultsCard);
-        // Ensure export buttons are hidden by 'no-pdf' class logic in normalizeForCapture
         const cCanvas = await html2canvas(resultsCard, { backgroundColor: '#ffffff', scale: scale });
         restoreAfterCapture(resultsCard, cStyles);
         const cHeight = (cCanvas.height * contentWidth) / cCanvas.width;
@@ -1984,7 +1941,6 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
         yPos += cHeight + 10;
     }
 
-    // 2. AI Advisor Section
     const aiAdvisor = document.getElementById('ai-advisor-section');
     if (aiAdvisor) {
         const hStyles = normalizeForCapture(aiAdvisor);
@@ -1996,10 +1952,8 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
         yPos += hHeight + 10;
     }
 
-    // 3. Ownership Breakdown
     const breakdown = document.getElementById('breakdown-section');
     if (breakdown) {
-        // Subsection Title
         const title = breakdown.querySelector('.subsection-title');
         if (title) {
             const tStyles = normalizeForCapture(title);
@@ -2037,7 +1991,6 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
         }
     }
     
-    // Page Numbers
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -2048,18 +2001,13 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
     return doc;
 }
 
-// Download PDF
 window.downloadPDF = async function() {
     try {
         showToast('Generating Report...', 'success');
-        
         const dateStr = new Date().toISOString().split('T')[0];
-        
-        // Generate unified PDF with high quality but optimized scale
         const doc = await generateCombinedPDF(0.8, 1.5);
-        
+        if (!doc) return;
         doc.save(`SAFE_Calculator_Report_${dateStr}.pdf`);
-        
         showToast('Report Downloaded!', 'success');
     } catch (error) {
         console.error("PDF Generation Error:", error);
@@ -2067,7 +2015,7 @@ window.downloadPDF = async function() {
     }
 };
 
-// Send Email with PDF attachment - Re-optimized for 50KB limit
+
 window.sendEmailWithPDF = async function() {
     const nameInput = document.getElementById('name-input');
     const emailInput = document.getElementById('email-input');
@@ -2091,16 +2039,18 @@ window.sendEmailWithPDF = async function() {
     btnLoader.style.display = 'inline-flex';
     
     try {
+        if (!checkPDFDependencies()) return;
         showToast('Preparing PDF...', 'success');
 
         const doc = await generateCombinedPDF(0.8, 1.5);
+        if (!doc) return;
         const pdfBase64 = doc.output('datauristring').split(',')[1];
         
         const founderOwnership = document.getElementById('founder-ownership-val').textContent;
         const founderDilution = document.getElementById('founder-dilution-val').textContent;
         const postMoney = document.getElementById('post-money-val').textContent;
 
-        // Calculate Total Raised (SAFEs + Priced Round)
+
         const totalRaisedVal = state.rowData
             .filter(r => r.type === CapTableRowType.Safe || r.type === CapTableRowType.Series)
             .reduce((sum, r) => sum + (r.investment || 0), 0);
@@ -2151,7 +2101,7 @@ window.sendEmailWithPDF = async function() {
 };
 
 
-// Close modal on outside click
+
 document.addEventListener('click', function(event) {
     const modal = document.getElementById('email-modal');
     if (event.target === modal) {
@@ -2159,7 +2109,7 @@ document.addEventListener('click', function(event) {
     }
 });
 
-// Close modal on Escape key
+
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         const modal = document.getElementById('email-modal');
@@ -2168,3 +2118,4 @@ document.addEventListener('keydown', function(event) {
         }
     }
 });
+})();
