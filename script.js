@@ -1542,11 +1542,16 @@ const renderBarChart = (preFounderPct, postFounderPct) => {
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    enabled: true,
+                    backgroundColor: '#ffffff',
+                    titleColor: '#111827',
+                    bodyColor: '#4B5563',
+                    borderColor: '#E5E7EB',
+                    borderWidth: 1,
                     padding: 12,
                     cornerRadius: 8,
-                    titleFont: { family: "'Inter', sans-serif" },
-                    bodyFont: { family: "'Inter', sans-serif" },
+                    titleFont: { size: 13, weight: '600', family: "'Inter', sans-serif" },
+                    bodyFont: { size: 12, family: "'Inter', sans-serif" },
                     callbacks: {
                         label: (context) => ` Ownership: ${context.raw.toFixed(1)}%`
                     }
