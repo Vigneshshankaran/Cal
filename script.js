@@ -614,14 +614,14 @@ const INITIAL_STATE = {
             type: "common",
             name: "Employee (granted)",
             shares: 1000000,
-            category: "ESOP Pool (granted)",
+            category: "ESOP pool (granted)",
         },
         {
             id: "UnusedOptionsPool",
             type: "common",
-            name: "ESOP Pool (unallocated)",
+            name: "ESOP pool (unallocated)",
             shares: 1000000,
-            category: "ESOP Pool (unallocated)",
+            category: "ESOP pool (unallocated)",
         },
         {
             id: "3",
@@ -909,7 +909,7 @@ const updateUI = () => {
 const renderShareholders = (totalSharesS0) => {
     const container = document.getElementById("shareholders-body");
     container.innerHTML = "";
-    const categories = ["Founder", "ESOP Pool (granted)", "ESOP Pool (unallocated)", "Investor", "Other"];
+    const categories = ["Founder", "ESOP pool (granted)", "ESOP pool (unallocated)", "Investor", "Other"];
     const shareholders = state.rowData.filter((r) => r.type === CapTableRowType.Common);
     const showDelete = shareholders.length > 1;
     
@@ -983,7 +983,7 @@ const renderSAFEs = () => {
                     </div>
                 </div>
                 <div>
-                    <label class="field-label">Valuation Cap</label>
+                    <label class="field-label">Valuation cap</label>
                     <div class="input-with-symbol">
                         <span class="input-symbol">$</span>
                         <input class="input row-input-right" type="text" value="${formatNumberWithCommas(displayCap)}" 
@@ -1057,7 +1057,7 @@ const renderSeriesInvestors = () => {
         seriesSection.appendChild(totalRow);
     }
     totalRow.innerHTML = `
-        <span>Total raising</span>
+        <span>Total raised</span>
         <span class="footer-total-value">${formatUSDWithCommas(totalInv)}</span>
     `;
 };
@@ -1153,9 +1153,9 @@ const getRowData = (data) => {
 
             id: "UnusedOptionsPool",
 
-            name: "ESOP Pool (unallocated)",
+            name: "ESOP pool (unallocated)",
 
-            category: "ESOP Pool (unallocated)",
+            category: "ESOP pool (unallocated)",
 
             shares: data.refreshedOptionsPool.shares || 0,
 
@@ -1383,8 +1383,7 @@ const renderPieChart = (postRound) => {
             datasets: [{
                 data,
                 backgroundColor: backgroundColors,
-                borderWidth: 2,
-                borderColor: "#ffffff",
+                borderWidth: 0,
                 hoverOffset: 15
             }]
         },
@@ -1639,6 +1638,9 @@ window.updateRow = (id, field, value) => {
         row[field] = stringToNumber(value) / 100;
     } else {
         row[field] = value;
+        if (field === "conversionType" && value === "mfn") {
+            row.cap = 0;
+        }
     }
     updateUI();
 };

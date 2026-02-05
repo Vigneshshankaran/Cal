@@ -307,9 +307,7 @@ h3 {
   flex: 1;
 }
 
-.w-32 {
-  width: 20px;
-}
+
 
 /* Chart Wrappers */
 .chart-wrapper-pie {
@@ -1577,7 +1575,6 @@ table .percentage-input-wrapper .percentage-suffix {
   font-weight: 600;
   color: var(--text-light);
   letter-spacing: 0.05em;
-  text-transform: uppercase;
 }
 
 .main-stats-grid {
@@ -1696,7 +1693,6 @@ table .percentage-input-wrapper .percentage-suffix {
   font-weight: 500;
   color: #6b7280;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
 }
 
 .stat-value-small {

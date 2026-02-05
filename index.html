@@ -17,7 +17,7 @@
         <header class="mb-12 mt-8">
             <h1>SAFE Calculator</h1>
             <p class="header-description">
-                Model your cap table and see dilution in real-time.
+                Model SAFE conversion and founder dilution in a priced round
             </p>
         </header>
 
@@ -31,8 +31,8 @@
                     <section id="cap-table-section">
                         <div class="card-header">
                             <div class="card-title-group">
-                                <h2>Existing Cap Table</h2>
-                                <p>Current ownership before financing</p>
+                                <h2>Current cap table</h2>
+                                <p>Ownership before the priced round: Enter all issued shares, including those held by founders, employees, and any existing option pools.</p>
                             </div>
                             <button class="btn btn-primary" onclick="addRow('common')">
                                 <svg class="btn-icon-1"><use href="#icon-plus"></use></svg>
@@ -62,8 +62,8 @@
                     <section id="priced-round-section">
                         <div class="card-header">
                             <div class="card-title-group">
-                                <h2>Priced Round Configuration</h2>
-                                <p>Configure your financing terms</p>
+                                <h2>Priced round configuration</h2>
+                                <p>These terms determine how SAFEs convert and how new shares are issued.</p>
                             </div>
                         </div>
                         <div class="config-card">
@@ -79,7 +79,7 @@
                         <div class="option-pool-card">
                             <div class="flex-between items-start">
                                 <div>
-                                    <label class="field-label mb-0">Target Option Pool</label>
+                                    <label class="field-label mb-0">Target option pool</label>
                                     <p class="helper-text">Post-round unallocated pool</p>
                                 </div>
                                 <div class="flex items-center gap-2">
@@ -89,14 +89,14 @@
                                     <span class="option-pool-suffix">%</span>
                                 </div>
                             </div>
-                            <p id="additional-options-val-text" class="additional-shares-note">+0 shares will be added to reach target</p>
+                            <p id="additional-options-val-text" class="additional-shares-note">+0 shares will be added to reach the target</p>
                         </div>
                         <div class="input-group mb-24">
-                            <label class="field-label">Round Name</label>
+                            <label class="field-label">Round name</label>
                             <input class="input" value="Series A" onchange="updateGlobal('roundName', this.value)" />
                         </div>
                         <div class="investors-header">
-                            <h3>Round Investors</h3>
+                            <h3>Round investors</h3>
                             <button class="btn btn-primary" onclick="addRow('series')">
                                 <svg class="btn-icon-1"><use href="#icon-plus"></use></svg>
                                 Add
@@ -118,7 +118,7 @@
             <section id="results-card">
                 <div class="results-layout">
                     <div class="flex-between mb-4 no-pdf">
-                        <div class="founder-outcome-label">FOUNDER OUTCOME</div>
+                        <div class="founder-outcome-label">OWNERSHIP SPLIT</div>
                         <div class="export-actions-mini">
                             <button class="btn-mini-export primary" onclick="downloadPDF()">
                                 Download
@@ -145,11 +145,11 @@
                             <span id="post-money-val" class="stat-value-small">$0</span>
                         </div>
                         <div class="stat-small border-left">
-                            <span class="stat-label-caps">PRICE PER SHARE</span>
+                            <span class="stat-label-caps">Price per share (PPS)</span>
                             <span id="round-pps-val" class="stat-value-small">$0.000</span>
                         </div>
                         <div class="stat-small border-left">
-                            <span class="stat-label-caps">TOTAL SHARES</span>
+                            <span class="stat-label-caps">Total shares post-round</span>
                             <span id="total-post-shares-val" class="stat-value-small">0</span>
                         </div>
                     </div>
@@ -157,11 +157,11 @@
 
                 <div class="results-charts-row">
                     <div class="chart-column">
-                        <div class="chart-title">OWNERSHIP SPLIT</div>
+                        <div class="chart-title">Ownership split</div>
                         <div id="pie-chart-container" class="donut-container"></div>
                     </div>
                     <div class="chart-column">
-                        <div class="chart-title">FOUNDER DILUTION (PRE VS POST)</div>
+                        <div class="chart-title">Founder ownership (pre- vs. post-round)</div>
                         <div id="bar-chart-container" class="bar-chart-container"></div>
                     </div>
                 </div>
@@ -170,11 +170,18 @@
                 <div class="ai-insights-box">
                     <div class="ai-header-group">
                         <div class="ai-icon-circle">
-                            <svg class="icon-sparkles"><use href="#icon-sparkles"></use></svg>
-                        </div>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="800px" height="800px" viewBox="0 0 512 512" version="1.1">
+    <title>ai</title>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="icon" fill="blue" transform="translate(64.000000, 64.000000)">
+            <path d="M320,64 L320,320 L64,320 L64,64 L320,64 Z M171.749388,128 L146.817842,128 L99.4840387,256 L121.976629,256 L130.913039,230.977 L187.575039,230.977 L196.319607,256 L220.167172,256 L171.749388,128 Z M260.093778,128 L237.691519,128 L237.691519,256 L260.093778,256 L260.093778,128 Z M159.094727,149.47526 L181.409039,213.333 L137.135039,213.333 L159.094727,149.47526 Z M341.333333,256 L384,256 L384,298.666667 L341.333333,298.666667 L341.333333,256 Z M85.3333333,341.333333 L128,341.333333 L128,384 L85.3333333,384 L85.3333333,341.333333 Z M170.666667,341.333333 L213.333333,341.333333 L213.333333,384 L170.666667,384 L170.666667,341.333333 Z M85.3333333,0 L128,0 L128,42.6666667 L85.3333333,42.6666667 L85.3333333,0 Z M256,341.333333 L298.666667,341.333333 L298.666667,384 L256,384 L256,341.333333 Z M170.666667,0 L213.333333,0 L213.333333,42.6666667 L170.666667,42.6666667 L170.666667,0 Z M256,0 L298.666667,0 L298.666667,42.6666667 L256,42.6666667 L256,0 Z M341.333333,170.666667 L384,170.666667 L384,213.333333 L341.333333,213.333333 L341.333333,170.666667 Z M0,256 L42.6666667,256 L42.6666667,298.666667 L0,298.666667 L0,256 Z M341.333333,85.3333333 L384,85.3333333 L384,128 L341.333333,128 L341.333333,85.3333333 Z M0,170.666667 L42.6666667,170.666667 L42.6666667,213.333333 L0,213.333333 L0,170.666667 Z M0,85.3333333 L42.6666667,85.3333333 L42.6666667,128 L0,128 L0,85.3333333 Z" id="Combined-Shape">
+
+</path>
+        </g>
+    </g>
+</svg>                        </div>
                         <div class="ai-title-stack">
-                            <div class="ai-main-title">AI Equity Advisor</div>
-                            <div class="ai-subtitle">Interpretation of your scenario</div>
+                            <div class="ai-main-title">Round summary</div>
                         </div>
                     </div>
                     <div id="ai-insights-container" class="ai-insights-content"></div>
@@ -182,14 +189,14 @@
             </section>
             <section id="breakdown-section">
                 <div class="table-container">
-                    <p class="subsection-title">Ownership Breakdown</p>
+                    <p class="subsection-title">Ownership breakdown</p>
                     <div class="table-wrapper-responsive">
                         <table>
                             <thead>
                                 <tr>
                                     <th class="col-name">Category</th>
-                                    <th>Shares(Pre)</th>
-                                    <th>Shares(Post)</th>
+                                    <th>Shares (Pre)</th>
+                                    <th>Shares (Post)</th>
                                     <th>% (Pre)</th>
                                     <th>% (Post)</th>
                                     <th class="hide-on-mobile">PPS</th>
@@ -224,9 +231,7 @@
         <symbol id="icon-email" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline>
         </symbol>
-        <symbol id="icon-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"></path>
-        </symbol>
+        
     </svg>
 
     <!-- Email Modal -->
