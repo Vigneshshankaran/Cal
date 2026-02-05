@@ -2070,7 +2070,7 @@ window.sendEmailWithPDF = async function() {
 
         showToast('Sending...', 'success');
 
-        const response = await fetch('https://backend-new-taupe-chi.vercel.app/send-email', {
+        const response = await fetch('https://backend-new-oc7i.vercel.app/send-email', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
