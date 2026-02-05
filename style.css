@@ -65,6 +65,27 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+svg {
+  flex-shrink: 0;
+}
+
+.icon-error, .icon-trash, .icon-sparkles, .icon-mini {
+  stroke: currentColor;
+  fill: none;
+}
+
+.icon-plus, .spinner {
+  fill: currentColor;
+  stroke: none;
+}
+
+@media print {
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
 h1,
 h2,
 h3,
