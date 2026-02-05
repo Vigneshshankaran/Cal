@@ -809,7 +809,7 @@ const updateUI = () => {
         if (additionalOptionsEl) additionalOptionsEl.textContent = safeFormatNumber(pricedConversion.additionalOptions);
 
         const additionalOptionsTextEl = document.getElementById("additional-options-val-text");
-        if (additionalOptionsTextEl) additionalOptionsTextEl.textContent = `+${safeFormatNumber(pricedConversion.additionalOptions)} shares will be added to reach target`;
+        if (additionalOptionsTextEl) additionalOptionsTextEl.textContent = `+${safeFormatNumber(pricedConversion.additionalOptions)} shares will be added to reach the target`;
 
         const newInvestorsSharesEl = document.getElementById(
 
@@ -1274,7 +1274,7 @@ const renderBreakdownTable = (preData, postData, pps) => {
 
             if (post.shares > pre.shares + 1) {
 
-                tagsHtml += `<span class="tag tag-topup">Pool Top-Up</span>`;
+                tagsHtml += `<span class="tag tag-topup">Pool top-up</span>`;
 
             }
 

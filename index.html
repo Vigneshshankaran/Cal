@@ -32,7 +32,7 @@
                         <div class="card-header">
                             <div class="card-title-group">
                                 <h2>Current cap table</h2>
-                                <p>Ownership before the priced round: Enter all issued shares, including those held by founders, employees, and any existing option pools.</p>
+                                <p>Enter all issued shares, including those held by founders, employees, and any existing option pools.</p>
                             </div>
                             <button class="btn btn-primary" onclick="addRow('common')">
                                 <svg class="btn-icon-1"><use href="#icon-plus"></use></svg>
@@ -46,8 +46,8 @@
                     <section id="safes-section">
                         <div class="card-header">
                             <div class="card-title-group">
-                                <h2>SAFE Terms</h2>
-                                <p>Convertible instruments to include in conversion</p>
+                                <h2>SAFE terms</h2>
+                                <p>Each SAFE will convert based on its cap, discount, and the priced round terms.</p>
                             </div>
                             <button class="btn btn-primary" onclick="addRow('safe')">
                                 <svg class="btn-icon-1"><use href="#icon-plus"></use></svg>
@@ -67,7 +67,7 @@
                             </div>
                         </div>
                         <div class="config-card">
-                            <label class="field-label">Pre-money Valuation</label>
+                            <label class="field-label">Pre-money valuation</label>
                             <div class="input-with-symbol valuation-input-wrapper">
                                 <span class="input-symbol">$</span>
                                 <input class="input valuation-main-input" type="text" id="pre-money-input" value="0" oninput="formatInputLive(this, true)" onchange="updateGlobal('preMoney', this.value)" />
@@ -117,7 +117,7 @@
             <section id="results-card">
                 <div class="results-layout">
                     <div class="flex-between mb-4 no-pdf">
-                        <div class="founder-outcome-label">OWNERSHIP SPLIT</div>
+                        <div class="founder-outcome-label">Founder Outcome</div>
                         <div class="export-actions-mini">
                             <button class="btn-mini-export primary" onclick="downloadPDF()">
                                 Download
@@ -140,7 +140,7 @@
 
                     <div class="secondary-stats-row">
                         <div class="stat-small">
-                            <span class="stat-label-caps">POST-MONEY</span>
+                            <span class="stat-label-caps">Post-money</span>
                             <span id="post-money-val" class="stat-value-small">$0</span>
                         </div>
                         <div class="stat-small border-left">

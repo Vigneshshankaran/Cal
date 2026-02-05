@@ -1573,9 +1573,10 @@ table .percentage-input-wrapper .percentage-suffix {
 }
 
 .founder-outcome-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-light);
+ font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  text-align: left;
   letter-spacing: 0.05em;
 }
 
