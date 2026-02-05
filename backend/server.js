@@ -3,33 +3,13 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const { sendPDFReport } = require('./mailer');
-const { generatePDF } = require('./pdfRenderer');
 
 const app = express();
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3005;
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
-
-// PDF Generation Endpoint
-app.post('/generate-pdf', async (req, res) => {
-    const { htmlContent } = req.body;
-
-    if (!htmlContent) {
-        return res.status(400).json({ success: false, message: 'Missing HTML content' });
-    }
-
-    try {
-        const pdfBuffer = await generatePDF(htmlContent);
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename=report.pdf');
-        res.send(pdfBuffer);
-    } catch (error) {
-        console.error('Error generating PDF:', error);
-        res.status(500).json({ success: false, message: 'Failed to generate PDF' });
-    }
-});
 
 // Email Endpoint
 app.post('/send-email', async (req, res) => {

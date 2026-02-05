@@ -10,7 +10,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 </head>
 
 <body>
@@ -241,6 +240,10 @@
                 <button class="modal-close" onclick="hideEmailModal()">&times;</button>
             </div>
             <div class="modal-body">
+                <div class="input-group">
+                    <label class="field-label">First Name</label>
+                    <input type="text" id="name-input" class="input" placeholder="Enter your first name" />
+                </div>
                 <div class="input-group">
                     <label class="field-label">Email Address</label>
                     <input type="email" id="email-input" class="input" placeholder="founder@example.com" />
