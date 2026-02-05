@@ -42,21 +42,21 @@ const formatNumberWithCommas = (value) => {
 };
 
 const safeFormatPercent = (value, decimals = 2) => {
-    
-    if (value === null || value === undefined || isNaN(value) || !isFinite(value))
+    if (value === null || value === undefined || isNaN(value) || !isFinite(value) || value === 0)
         return "—";
-
-    return `${(value * 100).toFixed(decimals)}%`;
+    const formatted = (value * 100).toFixed(decimals);
+    if (parseFloat(formatted) === 0) return "—";
+    return `${formatted}%`;
 };
 
 const safeFormatNumber = (value) => {
-    if (value === null || value === undefined || isNaN(value) || !isFinite(value))
+    if (value === null || value === undefined || isNaN(value) || !isFinite(value) || value === 0)
         return "—";
     return formatNumberWithCommas(value);
 };
 
 const safeFormatCurrency = (value) => {
-    if (value === null || value === undefined || isNaN(value) || !isFinite(value))
+    if (value === null || value === undefined || isNaN(value) || !isFinite(value) || value === 0)
         return "—";
     return formatUSDWithCommas(value);
 };
@@ -78,7 +78,7 @@ const safeFormatUSD = (value) => {
 };
 
 const safeFormatPPS = (value) => {
-    if (value === null || value === undefined || isNaN(value) || !isFinite(value))
+    if (value === null || value === undefined || isNaN(value) || !isFinite(value) || value === 0)
         return "—";
     return formatPPSWithCommas(value);
 };
@@ -679,6 +679,7 @@ const updateUI = () => {
             document.getElementById("post-money-val").textContent = "—";
             document.getElementById("total-post-shares-val").textContent = "—";
             document.getElementById("founder-ownership-val").textContent = "—";
+            document.getElementById("founder-dilution-val").textContent = "—";
             document.getElementById("post-round-table").innerHTML = "";
             document.getElementById("pie-chart-container").innerHTML = "";
             document.getElementById("bar-chart-container").innerHTML = "";
@@ -750,12 +751,10 @@ const updateUI = () => {
             document.getElementById("ai-insights-container").innerHTML = "";
 
             document.getElementById("round-pps-val").textContent = "—";
-
             document.getElementById("post-money-val").textContent = "—";
-
             document.getElementById("total-post-shares-val").textContent = "—";
-
             document.getElementById("founder-ownership-val").textContent = "—";
+            document.getElementById("founder-dilution-val").textContent = "—";
 
             return; 
 
@@ -1438,6 +1437,8 @@ const renderPieChart = (postRound) => {
                                     return {
                                         text: `${label} (${percentage}%)`,
                                         fillStyle: data.datasets[0].backgroundColor[i],
+                                        strokeStyle: "#ffffff",
+                                        lineWidth: 1,
                                         pointStyle: 'circle',
                                         hidden: false,
                                         index: i
@@ -1640,6 +1641,7 @@ window.updateRow = (id, field, value) => {
         row[field] = value;
         if (field === "conversionType" && value === "mfn") {
             row.cap = 0;
+            row.discount = 0;
         }
     }
     updateUI();

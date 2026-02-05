@@ -237,6 +237,7 @@ h3 {
   color: var(--text-muted);
   margin-bottom: 8px;
   line-height: 16px;
+  gap: 40px;
 }
 
 /* Utility Classes */
@@ -1078,6 +1079,7 @@ th {
   letter-spacing: normal;
   text-transform: none;
   padding-top: 0;
+  white-space: nowrap;
 }
 
 th:first-child {
