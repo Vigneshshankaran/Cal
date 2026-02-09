@@ -313,8 +313,28 @@ h3 {
 /* Chart Wrappers */
 .chart-wrapper-pie {
   width: 100%;
-  height: 300px;
+  height: auto;
+  min-height: 200px;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pie-canvas-box {
+  width: 250px;
+  height: 200px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.chart-legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem 1rem;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0 0.5rem;
 }
 
 .chart-wrapper-bar {
@@ -1599,6 +1619,7 @@ table .percentage-input-wrapper .percentage-suffix {
 .btn-mini-export {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 8px 16px;
   border-radius: 8px;
@@ -1609,6 +1630,7 @@ table .percentage-input-wrapper .percentage-suffix {
   transition: all 0.2s ease;
   border: none;
   box-shadow: var(--shadow-button);
+  min-width: 100px; /* Equal sizing */
 }
 
 .btn-mini-export.primary {
@@ -1631,6 +1653,35 @@ table .percentage-input-wrapper .percentage-suffix {
   background: #f8f8ff;
   border-color: var(--brand-indigo);
   transform: translateY(-1px);
+}
+
+.btn-reset {
+  padding: 6px 12px;
+  font-size: 13px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  border: 1px solid var(--border-fintech);
+  color: var(--text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-reset:hover {
+  background: #f8f8ff;
+  border-color: var(--brand-indigo);
+  color: var(--brand-indigo);
+}
+
+.btn-reset svg {
+  opacity: 0.7;
+}
+
+.btn-reset:hover svg {
+  opacity: 1;
 }
 
 .no-pdf {
@@ -1708,6 +1759,7 @@ table .percentage-input-wrapper .percentage-suffix {
 .results-charts-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start; /* Keep columns at their natural height */
   gap: 2.5rem;
   margin-bottom: 2.5rem;
   background: var(--white);
@@ -1776,9 +1828,10 @@ table .percentage-input-wrapper .percentage-suffix {
 
 .custom-legend-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* Align dot to top when text wraps */
   gap: 0.75rem;
-  padding: 0.125rem 0;
+  padding: 0.25rem 0;
+  min-width: 0;
 }
 
 .legend-dot {
@@ -1793,9 +1846,8 @@ table .percentage-input-wrapper .percentage-suffix {
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--text-medium);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-word; /* Allow wrapping */
+  line-height: 1.25;
 }
 
 .legend-pct {

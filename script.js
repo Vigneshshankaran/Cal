@@ -1,4 +1,9 @@
-(function() {
+/* 
+================================================================
+PART 1: CORE ENGINE
+Constants, Formatting, and calculation logic.
+================================================================
+*/
 const CapTableRowType = {
     Common: "common",
     Safe: "safe",
@@ -71,38 +76,19 @@ const formatPPSWithCommas = (value) => {
     });
 };
 
-const safeFormatUSD = (value) => {
-    if (value === null || value === undefined || isNaN(value) || !isFinite(value))
-        return "—";
-    return formatUSDWithCommas(value);
-};
-
 const safeFormatPPS = (value) => {
     if (value === null || value === undefined || isNaN(value) || !isFinite(value) || value === 0)
         return "—";
     return formatPPSWithCommas(value);
 };
 
-const formatInputLive = (input, isCurrency = false) => {
+const formatInputLive = (input) => {
     let value = input.value;
     const start = input.selectionStart;
     const oldLength = value.length;
 
-    if (isCurrency) {
-        let digits = value.replace(/\D/g, "");
-        if (digits === "") {
-            input.value = "0";
-        } else {
-            input.value = formatNumberWithCommas(parseInt(digits));
-        }
-    } else {
-        let digits = value.replace(/\D/g, "");
-        if (digits === "") {
-            input.value = "0";
-        } else {
-            input.value = formatNumberWithCommas(parseInt(digits));
-        }
-    }
+    let digits = value.replace(/\D/g, "");
+    input.value = digits === "" ? "0" : formatNumberWithCommas(parseInt(digits));
 
     const newLength = input.value.length;
     const diff = newLength - oldLength;
@@ -591,6 +577,12 @@ const buildPricedRoundCapTable = (pricedConversion, rowData) => {
 
 };
 
+/* 
+================================================================
+PART 2: UI & RENDERING
+State management, updateUI, and chart rendering.
+================================================================
+*/
 const INITIAL_STATE = {
     name: "Standalone Worksheet",
     roundName: "Series A",
@@ -908,39 +900,38 @@ const updateUI = () => {
 const renderShareholders = (totalSharesS0) => {
     const container = document.getElementById("shareholders-body");
     container.innerHTML = "";
-    const categories = ["Founder", "ESOP pool (granted)", "ESOP pool (unallocated)", "Investor", "Other"];
     const shareholders = state.rowData.filter((r) => r.type === CapTableRowType.Common);
     const showDelete = shareholders.length > 1;
+    const template = document.getElementById("shareholder-card-template");
     
     shareholders.forEach((row) => {
         const ownershipPct = totalSharesS0 > 0 ? row.shares / totalSharesS0 : NaN;
         const pctText = safeFormatPercent(ownershipPct);
-        const card = document.createElement("div");
-        card.className = "input-row-card";
-        card.innerHTML = `
-            <div class="row-card-header">
-                <input class="input flex-1" value="${row.name}" placeholder="Name" onchange="updateRow('${row.id}', 'name', this.value)">
-                ${showDelete ? `<button class="btn-trash row-trash-btn" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>` : ""}
-            </div>
-            <div class="row-card-grid-shareholder">
-                <div>
-                    <label class="field-label row-field-label">Category</label>
-                    <select class="select row-select" onchange="updateRow('${row.id}', 'category', this.value)">
-                        ${categories.map(cat => `<option value="${cat}" ${row.category === cat ? "selected" : ""}>${cat}</option>`).join("")}
-                    </select>
-                </div>
-                <div>
-                    <label class="field-label row-field-label">Shares</label>
-                    <div class="flex items-center">
-                        <input class="input row-input-right" type="text" value="${formatNumberWithCommas(row.shares)}" 
-                            oninput="formatInputLive(this, false)" onchange="updateRow('${row.id}', 'shares', this.value)">
-                        <span class="input-suffix">shares</span>
-                    </div>
-                </div>
-                <div class="pct-badge badge-fixed-height">${pctText}</div>
-            </div>
-        `;
-        container.appendChild(card);
+        const clone = template.content.cloneNode(true);
+        
+        const nameInput = clone.querySelector(".row-name");
+        nameInput.value = row.name;
+        nameInput.onchange = (e) => updateRow(row.id, 'name', e.target.value);
+        
+        const deleteBtn = clone.querySelector(".row-trash-btn");
+        if (showDelete) {
+            deleteBtn.innerHTML = TRASH_ICON;
+            deleteBtn.onclick = () => deleteRow(row.id);
+        } else {
+            deleteBtn.remove();
+        }
+        
+        const categorySelect = clone.querySelector(".row-category");
+        categorySelect.value = row.category;
+        categorySelect.onchange = (e) => updateRow(row.id, 'category', e.target.value);
+        
+        const sharesInput = clone.querySelector(".row-shares");
+        sharesInput.value = formatNumberWithCommas(row.shares);
+        sharesInput.oninput = (e) => formatInputLive(e.target);
+        sharesInput.onchange = (e) => updateRow(row.id, 'shares', e.target.value);
+        
+        clone.querySelector(".row-pct").textContent = pctText;
+        container.appendChild(clone);
     });
 
     const footer = document.getElementById("cap-table-footer");
@@ -957,6 +948,7 @@ const renderSAFEs = () => {
     container.innerHTML = "";
     const safeRows = state.rowData.filter((r) => r.type === CapTableRowType.Safe);
     const showDelete = safeRows.length > 1;
+    const template = document.getElementById("safe-card-template");
     let totalInv = 0;
     
     safeRows.forEach((row, idx) => {
@@ -965,50 +957,40 @@ const renderSAFEs = () => {
         const effectiveCap = getCapForSafe(idx, safeRows);
         const displayCap = isMfnRow ? effectiveCap : row.cap;
         
-        const card = document.createElement("div");
-        card.className = "input-row-card";
-        card.innerHTML = `
-            <div class="safe-card-header">
-                <input class="input safe-name-input" value="${row.name}" placeholder="New SAFE" onchange="updateRow('${row.id}', 'name', this.value)" />
-                ${showDelete ? `<button class="btn-trash row-trash-btn" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>` : ""}
-            </div>
-            <div class="row-card-grid-safe">
-                <div>
-                    <label class="field-label">Investment</label>
-                    <div class="input-with-symbol">
-                        <span class="input-symbol">$</span>
-                        <input class="input row-input-right" type="text" value="${formatNumberWithCommas(row.investment)}" 
-                            oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'investment', this.value)" />
-                    </div>
-                </div>
-                <div>
-                    <label class="field-label">Valuation cap</label>
-                    <div class="input-with-symbol">
-                        <span class="input-symbol">$</span>
-                        <input class="input row-input-right" type="text" value="${formatNumberWithCommas(displayCap)}" 
-                            ${isMfnRow ? 'readonly' : ''}
-                            oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'cap', this.value)" />
-                    </div>
-                </div>
-                <div>
-                    <label class="field-label">Discount</label>
-                    <div class="input-with-symbol-right">
-                        <input class="input safe-discount-input" type="text" value="${Math.round(row.discount * 100)}" 
-                            oninput="formatInputLive(this, false)" onchange="updateRow('${row.id}', 'discount', this.value)" />
-                        <span class="input-symbol">%</span>
-                    </div>
-                </div>
-                <div>
-                    <label class="field-label">Type</label>
-                    <select class="select row-select" onchange="updateRow('${row.id}', 'conversionType', this.value)">
-                        <option value="post" ${row.conversionType === "post" ? "selected" : ""}>Post-money</option>
-                        <option value="pre" ${row.conversionType === "pre" ? "selected" : ""}>Pre-money</option>
-                        <option value="mfn" ${row.conversionType === "mfn" ? "selected" : ""}>MFN</option>
-                    </select>
-                </div>
-            </div>
-        `;
-        container.appendChild(card);
+        const clone = template.content.cloneNode(true);
+        const nameInput = clone.querySelector(".safe-name-input");
+        nameInput.value = row.name;
+        nameInput.onchange = (e) => updateRow(row.id, 'name', e.target.value);
+        
+        const deleteBtn = clone.querySelector(".row-trash-btn");
+        if (showDelete) {
+            deleteBtn.innerHTML = TRASH_ICON;
+            deleteBtn.onclick = () => deleteRow(row.id);
+        } else {
+            deleteBtn.remove();
+        }
+        
+        const invInput = clone.querySelector(".safe-investment");
+        invInput.value = formatNumberWithCommas(row.investment);
+        invInput.oninput = (e) => formatInputLive(e.target);
+        invInput.onchange = (e) => updateRow(row.id, 'investment', e.target.value);
+        
+        const capInput = clone.querySelector(".safe-cap");
+        capInput.value = formatNumberWithCommas(displayCap);
+        if (isMfnRow) capInput.readOnly = true;
+        capInput.oninput = (e) => formatInputLive(e.target);
+        capInput.onchange = (e) => updateRow(row.id, 'cap', e.target.value);
+        
+        const discountInput = clone.querySelector(".safe-discount-input");
+        discountInput.value = Math.round(row.discount * 100);
+        discountInput.oninput = (e) => formatInputLive(e.target);
+        discountInput.onchange = (e) => updateRow(row.id, 'discount', e.target.value);
+        
+        const typeSelect = clone.querySelector(".safe-type");
+        typeSelect.value = row.conversionType;
+        typeSelect.onchange = (e) => updateRow(row.id, 'conversionType', e.target.value);
+        
+        container.appendChild(clone);
     });
 
     const safesSection = document.getElementById("safes-container").parentElement;
@@ -1030,22 +1012,31 @@ const renderSeriesInvestors = () => {
     container.innerHTML = "";
     const seriesInvestors = state.rowData.filter((r) => r.type === CapTableRowType.Series);
     const showDelete = seriesInvestors.length > 1;
+    const template = document.getElementById("series-investor-template");
     let totalInv = 0;
     
     seriesInvestors.forEach((row) => {
         totalInv += row.investment;
-        const card = document.createElement("div");
-        card.className = "series-investor-row";
-        card.innerHTML = `
-            <input class="input flex-2" value="${row.name}" placeholder="Name" onchange="updateRow('${row.id}', 'name', this.value)">
-            <div class="input-with-symbol flex-1">
-                <span class="input-symbol">$</span>
-                <input class="input series-investor-input" type="text" value="${formatNumberWithCommas(row.investment)}" 
-                    oninput="formatInputLive(this, true)" onchange="updateRow('${row.id}', 'investment', this.value)">
-            </div>
-            ${showDelete ? `<button class="btn-trash row-trash-btn" onclick="deleteRow('${row.id}')">${TRASH_ICON}</button>` : ""}
-        `;
-        container.appendChild(card);
+        const clone = template.content.cloneNode(true);
+        
+        const nameInput = clone.querySelector(".investor-name");
+        nameInput.value = row.name;
+        nameInput.onchange = (e) => updateRow(row.id, 'name', e.target.value);
+        
+        const invInput = clone.querySelector(".series-investor-input");
+        invInput.value = formatNumberWithCommas(row.investment);
+        invInput.oninput = (e) => formatInputLive(e.target);
+        invInput.onchange = (e) => updateRow(row.id, 'investment', e.target.value);
+        
+        const deleteBtn = clone.querySelector(".row-trash-btn");
+        if (showDelete) {
+            deleteBtn.innerHTML = TRASH_ICON;
+            deleteBtn.onclick = () => deleteRow(row.id);
+        } else {
+            deleteBtn.remove();
+        }
+        
+        container.appendChild(clone);
     });
 
     const seriesSection = document.getElementById("series-container").parentElement;
@@ -1171,177 +1162,65 @@ const getRowData = (data) => {
 };
 
 const renderBreakdownTable = (preData, postData, pps) => {
-
     const container = document.getElementById("post-round-table");
-
     if (!container) return;
-
     container.innerHTML = "";
+    const template = document.getElementById("breakdown-row-template");
 
     const preRows = getRowData(preData);
-
     const postRows = getRowData(postData);
+    const preSharesValid = preData?.total?.shares > 0;
+    const postSharesValid = postData?.total?.shares > 0;
 
-    const preSharesValid =
-
-        preData &&
-
-        preData.total &&
-
-        !isNaN(preData.total.shares) &&
-
-        preData.total.shares > 0;
-
-    const postSharesValid =
-
-        postData &&
-
-        postData.total &&
-
-        !isNaN(postData.total.shares) &&
-
-        postData.total.shares > 0;
-
-    const allIds = Array.from(
-
-        new Set([...preRows.map((r) => r.id), ...postRows.map((r) => r.id)])
-
-    );
+    const allIds = Array.from(new Set([...preRows.map((r) => r.id), ...postRows.map((r) => r.id)]));
 
     allIds.forEach((id) => {
+        const pre = preRows.find((r) => r.id === id) || { shares: 0, ownershipPct: 0, isVirtual: true };
+        const post = postRows.find((r) => r.id === id) || { shares: 0, ownershipPct: 0 };
 
-        const pre = preRows.find((r) => r.id === id) || {
+        const prePctLabel = preSharesValid && !pre.isVirtual && pre.shares > 0 ? safeFormatPercent(pre.ownershipPct) : "—";
+        const postPctLabel = postSharesValid && post.shares > 0 ? safeFormatPercent(post.ownershipPct) : "—";
 
-            id: id,
-
-            name: "",
-
-            category: "—",
-
-            shares: 0,
-
-            ownershipPct: 0,
-
-            isVirtual: true,
-
-        };
-
-        const post = postRows.find((r) => r.id === id) || {
-
-            id: id,
-
-            name: "",
-
-            category: "—",
-
-            shares: 0,
-
-            ownershipPct: 0,
-
-        };
-
-        const prePctLabel =
-
-            preSharesValid && !pre.isVirtual && pre.shares > 0
-
-                ? safeFormatPercent(pre.ownershipPct)
-
-                : "—";
-
-        const postPctLabel =
-
-            postSharesValid && post.shares > 0
-
-                ? safeFormatPercent(post.ownershipPct)
-
-                : "—";
-
-        let displayName = post.name || pre.name || "—";
-
-        let tagsHtml = "";
-
-        if (post.isPricedOrSafe && post.category === "SAFE Converter") {
-            if (post.isMFN) {
-                tagsHtml += `<span class="tag tag-mfn">MFN SAFE</span>`;
-            } else if (post.conversionType === "pre") {
-                tagsHtml += `<span class="tag tag-pre">Pre-money SAFE</span>`;
-            } else {
-                tagsHtml += `<span class="tag tag-post">Post-money SAFE</span>`;
-            }
-        }
-
-        if (post.id === "UnusedOptionsPool" && postSharesValid && pre.shares >= 0) {
-
-            if (post.shares > pre.shares + 1) {
-
-                tagsHtml += `<span class="tag tag-topup">Pool top-up</span>`;
-
-            }
-
-        }
-
-        const tr = document.createElement("tr");
-        tr.className = "group investor-row";
+        const clone = template.content.cloneNode(true);
+        const tr = clone.querySelector("tr");
         tr.id = `row-${id}`;
+        
+        clone.querySelector(".row-display-name").textContent = post.name || pre.name || "—";
+        
+        let tagsHtml = "";
+        if (post.isPricedOrSafe && post.category === "SAFE Converter") {
+            if (post.isMFN) tagsHtml += `<span class="tag tag-mfn">MFN SAFE</span>`;
+            else if (post.conversionType === "pre") tagsHtml += `<span class="tag tag-pre">Pre-money SAFE</span>`;
+            else tagsHtml += `<span class="tag tag-post">Post-money SAFE</span>`;
+        }
+        if (post.id === "UnusedOptionsPool" && postSharesValid && pre.shares >= 0 && post.shares > pre.shares + 1) {
+            tagsHtml += `<span class="tag tag-topup">Pool top-up</span>`;
+        }
+        clone.querySelector(".row-tags").innerHTML = tagsHtml;
 
-        tr.innerHTML = `
-        <td class="col-name">
-            <div class="flex-cell-content">
-                <span class="font-medium text-dark">${displayName}</span>
-                ${tagsHtml}
-            </div>
-        </td>
+        clone.querySelector(".row-pre-shares").textContent = safeFormatNumber(pre.shares);
+        clone.querySelector(".row-post-shares").textContent = safeFormatNumber(post.shares);
+        clone.querySelector(".row-pre-pct").textContent = prePctLabel;
+        clone.querySelector(".row-post-pct").textContent = postPctLabel;
+        clone.querySelector(".row-pps").textContent = safeFormatPPS(post.pps_val);
 
-        <td class="text-right text-muted">${safeFormatNumber(pre.shares)}</td>
-
-        <td class="text-right font-medium text-dark">${safeFormatNumber(post.shares)}</td>
-
-        <td class="text-right text-muted">${prePctLabel}</td>
-
-        <td class="text-right font-medium text-brand">${postPctLabel}</td>
-
-        <td class="text-right text-muted hide-on-mobile">${safeFormatPPS(
-            post.pps_val
-        )}</td>
-    `;
-
-        container.appendChild(tr);
-
+        container.appendChild(clone);
     });
 
     const totalTr = document.createElement("tr");
     totalTr.className = "total-row"; 
-    totalTr.style.fontWeight = "600";
+    totalTr.style.fontWeight = "500";
     totalTr.style.backgroundColor = "var(--slate-50)";
-
-    const prePctLabel = preSharesValid ? "100.00%" : "—";
-    const postPctLabel = postSharesValid ? "100.00%" : "—";
 
     totalTr.innerHTML = `
         <td class="col-name" style="display: table-cell;">Total</td>
-
-        <td class="text-right pre-value">${safeFormatNumber(
-
-        preData.total.shares
-
-    )}</td>
-
-        <td class="text-right post-value post-shares-value">${safeFormatNumber(
-
-        postData.total.shares
-
-    )}</td>
-
-        <td class="text-right pre-value">${prePctLabel}</td>
-
-        <td class="text-right post-value post-pct-value">${postPctLabel}</td>
-
+        <td class="text-right pre-value">${safeFormatNumber(preData.total.shares)}</td>
+        <td class="text-right post-value post-shares-value">${safeFormatNumber(postData.total.shares)}</td>
+        <td class="text-right pre-value">${preSharesValid ? "100.00%" : "—"}</td>
+        <td class="text-right post-value post-pct-value">${postSharesValid ? "100.00%" : "—"}</td>
         <td class="text-right"></td>
-
     `;
-
     container.appendChild(totalTr);
-
 };
 
 const renderPieChart = (postRound) => {
@@ -1355,7 +1234,10 @@ const renderPieChart = (postRound) => {
 
     container.innerHTML = `
         <div class="chart-wrapper-pie">
-            <canvas id="pieChartCanvas"></canvas>
+            <div class="pie-canvas-box">
+                <canvas id="pieChartCanvas"></canvas>
+            </div>
+            <div id="pieChartLegend" class="chart-legend-grid"></div>
         </div>
     `;
 
@@ -1367,10 +1249,40 @@ const renderPieChart = (postRound) => {
 
     const labels = rowData.map(r => r.name);
     const data = rowData.map(r => r.shares);
-    const backgroundColors = [
-        "#5F17EA", "#8B5CF6", "#22D3EE", "#22C55E", "#FACC15", 
-        "#A78BFA", "#6366F1", "#3B82F6", "#06B6D4", "#10B981"
-    ];
+    const categoryPalettes = {
+        "Founder": ["#5F17EA", "#7C3AED", "#9333EA", "#A855F7", "#C084FC", "#D8B4FE"],
+        "Investor": ["#3B82F6", "#60A5FA", "#93C5FD", "#BFDBFE", "#2563EB", "#1D4ED8"],
+        "Series Investor": ["#06B6D4", "#22D3EE", "#67E8F9", "#A5F3FC"],
+        "New Investor": ["#06B6D4", "#22D3EE", "#67E8F9", "#A5F3FC"],
+        "SAFE Converter": ["#10B981", "#34D399", "#6EE7B7", "#A7F3D0"],
+        "ESOP pool (unallocated)": ["#FACC15", "#FDE047", "#FEF08A"],
+        "ESOP pool (granted)": ["#F59E0B", "#FBBF24", "#FCD34D"],
+        "Other": ["#64748B", "#94A3B8", "#CBD5E1"]
+    };
+
+    const categoryCounters = {};
+    const backgroundColors = rowData.map(r => {
+        const cat = r.category || "Other";
+        if (!categoryCounters[cat]) categoryCounters[cat] = 0;
+        const palette = categoryPalettes[cat] || categoryPalettes["Other"];
+        const color = palette[categoryCounters[cat] % palette.length];
+        categoryCounters[cat]++;
+        return color;
+    });
+
+    const legendContainer = document.getElementById("pieChartLegend");
+    if (legendContainer) {
+        legendContainer.innerHTML = rowData.map((r, i) => {
+            const percentage = ((r.shares / totalShares) * 100).toFixed(1);
+            return `
+                <div class="custom-legend-row" onclick="window.scrollToRow('${r.id}')" style="cursor: pointer;">
+                    <div class="legend-dot" style="background-color: ${backgroundColors[i]}"></div>
+                    <span class="legend-name">${r.name}</span>
+                    <span class="legend-pct">${percentage}%</span>
+                </div>
+            `;
+        }).join("");
+    }
 
     const canvas = document.getElementById("pieChartCanvas");
     const ctx = canvas.getContext("2d");
@@ -1389,21 +1301,12 @@ const renderPieChart = (postRound) => {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: "50%",
+            cutout: "60%",
             onClick: (event, elements) => {
                 if (elements.length > 0) {
                     const index = elements[0].index;
                     const id = rowData[index].id;
-                    const rowEl = document.getElementById(`row-${id}`);
-                    if (rowEl) {
-                        rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        rowEl.classList.add('highlight-row');
-                        rowEl.classList.add('highlight-flash');
-                        setTimeout(() => {
-                            rowEl.classList.remove('highlight-row');
-                            rowEl.classList.remove('highlight-flash');
-                        }, 2000);
-                    }
+                    window.scrollToRow(id);
                 }
             },
             onHover: (event, elements) => {
@@ -1413,41 +1316,7 @@ const renderPieChart = (postRound) => {
             },
             plugins: {
                 legend: {
-                    display: true,
-                    position: 'bottom',
-                    labels: {
-                        boxWidth: 8,
-                        boxHeight: 8,
-                        borderRadius: 4,
-                        usePointStyle: true,
-                        color: "#4B5563",
-                        font: { 
-                            size: 11, 
-                            family: "'Inter', sans-serif", 
-                            weight: 500
-                        },
-                        padding: 20,
-                        generateLabels: (chart) => {
-                            const data = chart.data;
-                            if (data.labels.length && data.datasets.length) {
-                                return data.labels.map((label, i) => {
-                                    const value = data.datasets[0].data[i];
-                                    const percentage = ((value / totalShares) * 100).toFixed(1);
-                                    if (value / totalShares < 0.005) return null;
-                                    return {
-                                        text: `${label} (${percentage}%)`,
-                                        fillStyle: data.datasets[0].backgroundColor[i],
-                                        strokeStyle: "#ffffff",
-                                        lineWidth: 1,
-                                        pointStyle: 'circle',
-                                        hidden: false,
-                                        index: i
-                                    };
-                                }).filter(item => item !== null);
-                            }
-                            return [];
-                        }
-                    }
+                    display: false
                 },
                 tooltip: {
                     enabled: true,
@@ -1458,7 +1327,7 @@ const renderPieChart = (postRound) => {
                     borderWidth: 1,
                     padding: 12,
                     cornerRadius: 8,
-                    titleFont: { size: 13, weight: '600', family: "'Inter', sans-serif" },
+                    titleFont: { size: 13, weight: '500', family: "'Inter', sans-serif" },
                     bodyFont: { size: 12, family: "'Inter', sans-serif" },
                     callbacks: {
                         label: (context) => {
@@ -1471,6 +1340,19 @@ const renderPieChart = (postRound) => {
             }
         }
     });
+};
+
+window.scrollToRow = (id) => {
+    const rowEl = document.getElementById(`row-${id}`);
+    if (rowEl) {
+        rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        rowEl.classList.add('highlight-row');
+        rowEl.classList.add('highlight-flash');
+        setTimeout(() => {
+            rowEl.classList.remove('highlight-row');
+            rowEl.classList.remove('highlight-flash');
+        }, 2000);
+    }
 };
 
 
@@ -1550,7 +1432,7 @@ const renderBarChart = (preFounderPct, postFounderPct) => {
                     borderWidth: 1,
                     padding: 12,
                     cornerRadius: 8,
-                    titleFont: { size: 13, weight: '600', family: "'Inter', sans-serif" },
+                    titleFont: { size: 13, weight: '500', family: "'Inter', sans-serif" },
                     bodyFont: { size: 12, family: "'Inter', sans-serif" },
                     callbacks: {
                         label: (context) => ` Ownership: ${context.raw.toFixed(1)}%`
@@ -1735,6 +1617,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
+/* 
+================================================================
+PART 3: PDF & INTEGRATION
+Email, Toast, and PDF generation logic.
+================================================================
+*/
 function showToast(message, type = 'success') {
     const toast = document.getElementById('toast-notification');
     toast.textContent = message;
@@ -2010,16 +1898,198 @@ async function generateCombinedPDF(quality = 0.8, scale = 1.5) {
     return doc;
 }
 
+const prepareReportData = () => {
+    const timestamp = new Date().toLocaleString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
+
+    const getVal = (id) => {
+        const el = document.getElementById(id);
+        return el ? el.textContent : '0';
+    };
+
+    const founderOwnership = getVal('founder-ownership-val');
+    const founderDilution = getVal('founder-dilution-val');
+    const postMoney = getVal('post-money-val');
+
+    const totalRaisedVal = state.rowData
+        .filter(r => r.type === CapTableRowType.Safe || r.type === CapTableRowType.Series)
+        .reduce((sum, r) => sum + (r.investment || 0), 0);
+    const totalRaised = formatUSDWithCommas(totalRaisedVal);
+
+    // Get current priced conversion data for table
+    const rawSafes = state.rowData.filter(r => r.type === CapTableRowType.Safe);
+    const populatedSafes = populateSafeCaps(rawSafes);
+    const seriesInvs = state.rowData
+        .filter(r => r.type === CapTableRowType.Series)
+        .map(r => r.investment);
+
+    const pricedConversion = fitConversion(
+        state.preMoney,
+        state.rowData.filter(r => r.type === CapTableRowType.Common && r.id !== "UnusedOptionsPool").reduce((sum, r) => sum + r.shares, 0),
+        populatedSafes,
+        state.rowData.find(r => r.id === "UnusedOptionsPool")?.shares || 0,
+        state.targetOptionsPool,
+        seriesInvs
+    );
+
+    const pricedTable = buildPricedRoundCapTable(pricedConversion, state.rowData);
+
+    const rows = [
+        ...pricedTable.common.map(r => ({
+            name: r.name,
+            preShares: r.shares,
+            postShares: r.shares,
+            badge: null,
+            isFounder: r.category === "Founder",
+            isSafe: false,
+            isInvestor: false
+        })),
+        ...pricedTable.safes.map(r => {
+            let badge = null;
+            let badgeStyle = "";
+            
+            if (isMFN(r)) {
+                badge = "MFN SAFE";
+                badgeStyle = "border-[#fecaca] bg-[#fee2e2] text-[#991b1b]";
+            } else if (r.conversionType === "pre") {
+                badge = "Pre-money SAFE";
+                badgeStyle = "border-[#fde68a] bg-[#fef3c7] text-[#92400e]";
+            } else if (r.conversionType === "post") {
+                badge = "Post-money SAFE";
+                badgeStyle = "border-[#a7f3d0] bg-[#d1fae5] text-[#065f46]";
+            }
+            
+            return {
+                name: r.name,
+                preShares: 0,
+                postShares: r.shares,
+                badge: badge,
+                badgeStyle: badgeStyle,
+                isFounder: false,
+                isSafe: true,
+                isInvestor: false,
+                investment: r.investment,
+                cap: r.cap,
+                discount: r.discount ? (r.discount * 100).toFixed(0) + "%" : "None",
+                type: r.conversionType ? r.conversionType.charAt(0).toUpperCase() + r.conversionType.slice(1) + "-money" : "N/A"
+            };
+        }),
+        ...pricedTable.series.map(r => ({
+            name: r.name,
+            preShares: 0,
+            postShares: r.shares,
+            badge: null,
+            badgeStyle: "",
+            isFounder: false,
+            isSafe: false,
+            isInvestor: true,
+            investment: r.investment
+        }))
+    ];
+
+    if (pricedTable.refreshedOptionsPool && pricedTable.refreshedOptionsPool.shares > 0) {
+        const preOptions = state.rowData.find(r => r.id === "UnusedOptionsPool")?.shares || 0;
+        const postOptions = pricedTable.refreshedOptionsPool.shares;
+        
+        let badge = null;
+        let badgeStyle = "";
+        
+        if (postOptions > preOptions + 1) {
+            badge = "Pool top-up";
+            badgeStyle = "border-[#c7d2fe] bg-[#e0e7ff] text-[#3730a3]";
+        }
+
+        rows.push({
+            name: "ESOP pool (unallocated)",
+            preShares: preOptions,
+            postShares: postOptions,
+            badge: badge,
+            badgeStyle: badgeStyle,
+            isFounder: false,
+            isSafe: false,
+            isInvestor: false
+        });
+    }
+
+    // Calculate pre-round ownership percentage manually if element is missing
+    const commonSharesTotal = state.rowData
+        .filter((r) => r.type === CapTableRowType.Common)
+        .reduce((a, r) => a + r.shares, 0);
+    const founderSharesPre = state.rowData
+        .filter((r) => r.type === CapTableRowType.Common && r.category === "Founder")
+        .reduce((a, r) => a + r.shares, 0);
+    const totalFounderPctPre = commonSharesTotal > 0 ? founderSharesPre / commonSharesTotal : 0;
+    const ownershipPre = safeFormatPercent(totalFounderPctPre);
+
+    return {
+        valuation: state.preMoney,
+        raised: totalRaisedVal,
+        safeAmount: state.rowData.filter(r => r.type === CapTableRowType.Safe).reduce((sum, r) => sum + (r.investment || 0), 0),
+        timestamp: timestamp,
+        optionPool: state.targetOptionsPool + "%",
+        roundName: state.roundName || "Series A",
+        summary: {
+            ownershipPre: ownershipPre,
+            ownershipPost: founderOwnership,
+            dilution: founderDilution,
+            postMoney: postMoney,
+            pricePerShare: getVal('round-pps-val'),
+            totalShares: getVal('total-post-shares-val'),
+            totalRaised: totalRaised
+        },
+        rows: rows
+    };
+};
+
 window.downloadPDF = async function() {
     try {
-        showToast('Generating Report...', 'success');
-        const dateStr = new Date().toISOString().split('T')[0];
-        const doc = await generateCombinedPDF(0.8, 1.5);
-        if (!doc) return;
-        doc.save(`SAFE_Calculator_Report_${dateStr}.pdf`);
-        showToast('Report Downloaded!', 'success');
+        console.log("Starting PDF download flow...");
+        showToast('Generating report...', 'success');
+        const reportData = prepareReportData();
+
+        console.log("Fetching from backend at http://127.0.0.1:3005/generate-pdf...");
+        const response = await fetch('http://127.0.0.1:3005/generate-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reportData })
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Server responded with ${response.status}: ${errText}`);
+        }
+
+        const result = await response.json();
+        console.log("Response received from backend:", result.success ? "Success" : "Failure");
+
+        if (result.success) {
+            const pdfBase64 = result.pdfBase64;
+            const byteCharacters = atob(pdfBase64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `SAFE_Calculator_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast('Report downloaded!', 'success');
+        } else {
+            throw new Error(result.message || "Backend failed to generate PDF");
+        }
     } catch (error) {
-        console.error("PDF Generation Error:", error);
+        console.error("PDF Download Error:", error);
+        alert(`PDF Download Failed: ${error.message}\n\nPlease ensure the backend server is running in the 'backend' folder.`);
         showToast('Error generating PDF', 'error');
     }
 };
@@ -2048,55 +2118,37 @@ window.sendEmailWithPDF = async function() {
     btnLoader.style.display = 'inline-flex';
     
     try {
-        if (!checkPDFDependencies()) return;
-        showToast('Preparing PDF...', 'success');
-
-        const doc = await generateCombinedPDF(0.8, 1.5);
-        if (!doc) return;
-        const pdfBase64 = doc.output('datauristring').split(',')[1];
-        
-        const founderOwnership = document.getElementById('founder-ownership-val').textContent;
-        const founderDilution = document.getElementById('founder-dilution-val').textContent;
-        const postMoney = document.getElementById('post-money-val').textContent;
-
-
-        const totalRaisedVal = state.rowData
-            .filter(r => r.type === CapTableRowType.Safe || r.type === CapTableRowType.Series)
-            .reduce((sum, r) => sum + (r.investment || 0), 0);
-        const totalRaised = formatUSDWithCommas(totalRaisedVal);
+        const reportData = prepareReportData();
 
         const payload = {
             to_email: email,
-            pdfBase64: pdfBase64,
+            reportData: reportData,
             summaryData: {
                 firstName: firstName || 'there',
-                founderOwnership,
-                founderDilution,
-                postMoney,
-                totalRaised
+                founderOwnership: reportData.summary.ownershipPost,
+                founderDilution: reportData.summary.dilution,
+                postMoney: reportData.summary.postMoney,
+                totalRaised: reportData.summary.totalRaised
             }
         };
 
         showToast('Sending...', 'success');
 
-        const response = await fetch('https://backend-new-oc7i.vercel.app/send-email', {
+        const emailResponse = await fetch('http://127.0.0.1:3005/send-email', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
-        const result = await response.json();
+        const result = await emailResponse.json();
 
         if (result.success) {
             hideEmailModal();
-            showToast('Email Sent successfully!', 'success');
+            showToast('Email sent successfully!', 'success');
             emailInput.value = ''; 
         } else {
             throw new Error(result.message);
         }
-
     } catch (error) {
         console.error('Email Error:', error);
         showToast('Server error. Is "node server.js" running?', 'error');
@@ -2127,4 +2179,3 @@ document.addEventListener('keydown', function(event) {
         }
     }
 });
-})();

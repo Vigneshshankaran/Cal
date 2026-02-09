@@ -15,7 +15,16 @@
 <body>
 
         <header class="mb-12 mt-8">
-            <h1>SAFE Calculator</h1>
+            <div class="flex items-center justify-center gap-4">
+                <h1>SAFE Calculator</h1>
+                <button class="btn btn-secondary btn-reset" onclick="resetCalculator()">
+                    <svg class="btn-icon-1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                        <path d="M3 3v5h5"></path>
+                    </svg>
+                    Reset
+                </button>
+            </div>
             <p class="header-description">
                 Model SAFE conversion and founder dilution in a priced round
             </p>
@@ -70,7 +79,7 @@
                             <label class="field-label">Pre-money valuation</label>
                             <div class="input-with-symbol valuation-input-wrapper">
                                 <span class="input-symbol">$</span>
-                                <input class="input valuation-main-input" type="text" id="pre-money-input" value="0" oninput="formatInputLive(this, true)" onchange="updateGlobal('preMoney', this.value)" />
+                                <input class="input valuation-main-input" type="text" id="pre-money-input" value="0" oninput="formatInputLive(this)" onchange="updateGlobal('preMoney', this.value)" />
                             </div>
                             <div class="valuation-subtext">
                                 Post-money valuation: <strong id="post-money-val-display">$0</strong>
@@ -84,7 +93,7 @@
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <div class="option-pool-input-wrapper">
-                                        <input class="input option-pool-main-input" type="text" id="target-options-input" value="10" oninput="formatInputLive(this, false)" onchange="updateGlobal('targetOptionsPool', this.value)" />
+                                        <input class="input option-pool-main-input" type="text" id="target-options-input" value="10" oninput="formatInputLive(this)" onchange="updateGlobal('targetOptionsPool', this.value)" />
                                     </div>
                                     <span class="option-pool-suffix">%</span>
                                 </div>
@@ -276,6 +285,103 @@
             </div>
         </div>
     </div>
+
+    <!-- Templates -->
+    <template id="shareholder-card-template">
+        <div class="input-row-card">
+            <div class="row-card-header">
+                <input class="input flex-1 row-name" placeholder="Name">
+                <button class="btn-trash row-trash-btn"></button>
+            </div>
+            <div class="row-card-grid-shareholder">
+                <div>
+                    <label class="field-label row-field-label">Category</label>
+                    <select class="select row-select row-category">
+                        <option value="Founder">Founder</option>
+                        <option value="ESOP pool (granted)">ESOP pool (granted)</option>
+                        <option value="ESOP pool (unallocated)">ESOP pool (unallocated)</option>
+                        <option value="Investor">Investor</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="field-label row-field-label">Shares</label>
+                    <div class="flex items-center">
+                        <input class="input row-input-right row-shares" type="text">
+                        <span class="input-suffix">shares</span>
+                    </div>
+                </div>
+                <div class="pct-badge badge-fixed-height row-pct"></div>
+            </div>
+        </div>
+    </template>
+
+    <template id="safe-card-template">
+        <div class="input-row-card">
+            <div class="safe-card-header">
+                <input class="input safe-name-input" placeholder="New SAFE" />
+                <button class="btn-trash row-trash-btn"></button>
+            </div>
+            <div class="row-card-grid-safe">
+                <div>
+                    <label class="field-label">Investment</label>
+                    <div class="input-with-symbol">
+                        <span class="input-symbol">$</span>
+                        <input class="input row-input-right safe-investment" type="text" />
+                    </div>
+                </div>
+                <div>
+                    <label class="field-label">Valuation cap</label>
+                    <div class="input-with-symbol">
+                        <span class="input-symbol">$</span>
+                        <input class="input row-input-right safe-cap" type="text" />
+                    </div>
+                </div>
+                <div>
+                    <label class="field-label">Discount</label>
+                    <div class="input-with-symbol-right">
+                        <input class="input safe-discount-input" type="text" />
+                        <span class="input-symbol">%</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="field-label">Type</label>
+                    <select class="select row-select safe-type">
+                        <option value="post">Post-money</option>
+                        <option value="pre">Pre-money</option>
+                        <option value="mfn">MFN</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="series-investor-template">
+        <div class="series-investor-row">
+            <input class="input flex-2 investor-name" placeholder="Name">
+            <div class="input-with-symbol flex-1">
+                <span class="input-symbol">$</span>
+                <input class="input series-investor-input" type="text">
+            </div>
+            <button class="btn-trash row-trash-btn"></button>
+        </div>
+    </template>
+
+    <template id="breakdown-row-template">
+        <tr class="group investor-row">
+            <td class="col-name">
+                <div class="flex-cell-content">
+                    <span class="font-medium text-dark row-display-name"></span>
+                    <span class="row-tags"></span>
+                </div>
+            </td>
+            <td class="text-right text-muted row-pre-shares"></td>
+            <td class="text-right font-medium text-dark row-post-shares"></td>
+            <td class="text-right text-muted row-pre-pct"></td>
+            <td class="text-right font-medium text-brand row-post-pct"></td>
+            <td class="text-right text-muted hide-on-mobile row-pps"></td>
+        </tr>
+    </template>
 
     <!-- Toast Notification -->
     <div id="toast-notification" class="toast-notification" style="display: none;"></div>
