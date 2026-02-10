@@ -105,83 +105,45 @@ const roundShares = (num, strategy = DEFAULT_ROUNDING_STRATEGY) => {
 };
 
 const roundPPSToPlaces = (num, places) => {
-
     if (places < 0) return num;
-
     const factor = Math.pow(10, places);
-
     return Math.ceil(num * factor) / factor;
-
 };
 
 const isMFN = (safe) => {
-
     return (
-
         safe.conversionType === "mfn" ||
-
         safe.conversionType === "ycmfn" ||
-
         (safe.sideLetters && safe.sideLetters.includes("mfn"))
-
     );
-
 };
 
-const getMFNCapAfter = (rows, idx) => {
-
-    return (
-
-        rows.slice(idx + 1).reduce((val, row) => {
-
-            if (isMFN(row) || row.conversionType === "pre") return val;
-
-            if (val === 0) return row.cap;
-
-            if (val > 0 && row.cap > 0 && row.cap < val) return row.cap;
-
-            return val;
-
-        }, 0) || 0
-
-    );
-
-};
 
 const getCapForSafe = (idx, safes) => {
-
     const safe = safes[idx];
-
     if (!isMFN(safe)) return safe.cap;
 
-    const inheritedCap = getMFNCapAfter(safes, idx);
+    // MFN Logic: Inherit lowest cap from future SAFEs (forward-looking only)
+    let bestFutureCap = Infinity;
+    for (let i = idx + 1; i < safes.length; i++) {
+        const futureSafe = safes[i];
+        if (futureSafe.cap > 0 && !isMFN(futureSafe)) {
+            if (futureSafe.cap < bestFutureCap) {
+                bestFutureCap = futureSafe.cap;
+            }
+        }
+    }
 
-    const ownCap = safe.cap || 0;
-
-    if (ownCap > 0 && inheritedCap > 0) return Math.min(ownCap, inheritedCap);
-
-    if (ownCap > 0) return ownCap;
-
-    if (inheritedCap > 0) return inheritedCap;
-
-    return 0;
-
+    if (bestFutureCap !== Infinity) {
+        return safe.cap > 0 ? Math.min(safe.cap, bestFutureCap) : bestFutureCap;
+    }
+    return safe.cap || 0;
 };
 
 const populateSafeCaps = (safeNotes) => {
-
     return safeNotes.map((safe, idx) => {
-
-        if (isMFN(safe)) {
-
-            return { ...safe, cap: getCapForSafe(idx, safeNotes) };
-
-        }
-
-        return { ...safe };
-
+        return { ...safe, cap: getCapForSafe(idx, safeNotes) };
     });
-
 };
 
 const safeConvert = (safe, preShares, postShares, pps) => {
@@ -370,19 +332,18 @@ const buildEstimatedPreRoundCapTable = (
     const preMoneyShares = common.reduce((acc, r) => acc + r.shares, 0);
 
     const safeNotes = populateSafeCaps(
-
         rowData.filter((r) => r.type === CapTableRowType.Safe)
-
     );
 
+    if (safeNotes.length === 0) {
+        return buildStrictlyPreRoundCapTable(rowData);
+    }
+
     if (safeNotes.some((s) => s.cap !== 0 && s.cap <= s.investment)) {
-
         return buildErrorPreRoundCapTable(safeNotes, common);
-
     }
 
     const maxCap = safeNotes.reduce((max, s) => Math.max(max, s.cap), 0);
-
     if (maxCap === 0) return buildTBDPreRoundCapTable(safeNotes, common);
 
     let safeRows = safeNotes.map((safe) => {
@@ -602,18 +563,11 @@ const INITIAL_STATE = {
             category: "Founder",
         },
         {
-            id: "IssuedOptions",
-            type: "common",
-            name: "Employee (granted)",
-            shares: 1000000,
-            category: "ESOP pool (granted)",
-        },
-        {
             id: "UnusedOptionsPool",
             type: "common",
-            name: "ESOP pool (unallocated)",
-            shares: 1000000,
-            category: "ESOP pool (unallocated)",
+            name: "Option Pool",
+            shares: 2000000,
+            category: "Option Pool",
         },
         {
             id: "3",
@@ -665,7 +619,7 @@ const updateUI = () => {
         clearGlobalErrors();
 
         if (state.preMoney <= 0) {
-            showGlobalError("Pre-money valuation is required and must be greater than 0 to calculate.");
+            showGlobalError("Pre-money valuation is required and must be greater than 0.");
             
             document.getElementById("round-pps-val").textContent = "—";
             document.getElementById("post-money-val").textContent = "—";
@@ -679,222 +633,129 @@ const updateUI = () => {
             return;
         }
 
+        // =========================================================================
+        // SNAPSHOT 2: PRE-ROUND CAP TABLE (Post-SAFE)
+        // =========================================================================
         const preRound = buildEstimatedPreRoundCapTable(state.rowData);
 
         const preMoneyInput = document.getElementById("pre-money-input");
-
         if (preMoneyInput && document.activeElement !== preMoneyInput) {
             preMoneyInput.value = formatNumberWithCommas(state.preMoney);
         }
 
         const targetOptionsInput = document.getElementById("target-options-input");
-
         if (targetOptionsInput && document.activeElement !== targetOptionsInput) {
-
             targetOptionsInput.value = state.targetOptionsPool;
-
         }
 
         renderSAFEs();
-
         renderSeriesInvestors();
 
         const esopRow = state.rowData.find((r) => r.id === "UnusedOptionsPool");
-
         const unusedOptionsValue = esopRow ? esopRow.shares : 0;
 
-        const S0 = state.rowData
-
+        // Current Cap Table Snapshot (for input management)
+        const currentTotalShares = state.rowData
             .filter((r) => r.type === CapTableRowType.Common)
-
             .reduce((a, r) => a + r.shares, 0);
 
         const totalSharesVal = document.getElementById("total-shares-val");
-
-        if (totalSharesVal) totalSharesVal.textContent = formatNumberWithCommas(S0);
+        if (totalSharesVal) totalSharesVal.textContent = formatNumberWithCommas(currentTotalShares);
 
         const currentEsopVal = document.getElementById("current-esop-val");
+        if (currentEsopVal) currentEsopVal.textContent = formatNumberWithCommas(unusedOptionsValue);
 
-        if (currentEsopVal)
+        renderShareholders(currentTotalShares);
 
-            currentEsopVal.textContent = formatNumberWithCommas(unusedOptionsValue);
-
-        renderShareholders(S0);
-
-        const rawSafes = state.rowData.filter(
-
-            (r) => r.type === CapTableRowType.Safe
-
-        );
-
+        const rawSafes = state.rowData.filter((r) => r.type === CapTableRowType.Safe);
         const safes = populateSafeCaps(rawSafes);
-
         const error = checkSafeNotesForErrors(safes);
 
         if (error) {
             showGlobalError(error.reason);
-
-            document.getElementById("post-round-table").innerHTML = "";
-
-            document.getElementById("pie-chart-container").innerHTML = "";
-
-            document.getElementById("bar-chart-container").innerHTML = "";
-
-            document.getElementById("ai-insights-container").innerHTML = "";
-
             document.getElementById("round-pps-val").textContent = "—";
             document.getElementById("post-money-val").textContent = "—";
             document.getElementById("total-post-shares-val").textContent = "—";
             document.getElementById("founder-ownership-val").textContent = "—";
             document.getElementById("founder-dilution-val").textContent = "—";
-
+            document.getElementById("post-round-table").innerHTML = "";
             return; 
-
         }
 
         const commonShares = state.rowData
-
-            .filter(
-
-                (r) => r.type === CapTableRowType.Common && r.id !== "UnusedOptionsPool"
-
-            )
-
+            .filter((r) => r.type === CapTableRowType.Common && r.id !== "UnusedOptionsPool")
             .reduce((a, r) => a + r.shares, 0);
 
         const seriesInvs = state.rowData
-
             .filter((r) => r.type === CapTableRowType.Series)
-
             .map((s) => s.investment);
 
         const pricedConversion = fitConversion(
-
             state.preMoney,
-
             commonShares,
-
             safes,
-
             unusedOptionsValue,
-
             state.targetOptionsPool,
-
             seriesInvs
-
         );
 
-
-
         const roundPpsEl = document.getElementById("round-pps-val");
-
-        if (roundPpsEl)
-
-            roundPpsEl.textContent = safeFormatPPS(pricedConversion.pps);
+        if (roundPpsEl) roundPpsEl.textContent = safeFormatPPS(pricedConversion.pps);
 
         const postMoneyVal = pricedConversion.totalShares * pricedConversion.pps;
         const postMoneyEl = document.getElementById("post-money-val");
         if (postMoneyEl) postMoneyEl.textContent = safeFormatCurrency(postMoneyVal);
         
-
         const additionalOptionsEl = document.getElementById("additional-options-val");
         if (additionalOptionsEl) additionalOptionsEl.textContent = safeFormatNumber(pricedConversion.additionalOptions);
 
         const additionalOptionsTextEl = document.getElementById("additional-options-val-text");
         if (additionalOptionsTextEl) additionalOptionsTextEl.textContent = `+${safeFormatNumber(pricedConversion.additionalOptions)} shares will be added to reach the target`;
 
-        const newInvestorsSharesEl = document.getElementById(
+        const newInvestorsSharesEl = document.getElementById("new-investors-shares-val");
+        if (newInvestorsSharesEl) newInvestorsSharesEl.textContent = safeFormatNumber(pricedConversion.seriesShares);
 
-            "new-investors-shares-val"
-
-        );
-
-        if (newInvestorsSharesEl)
-
-            newInvestorsSharesEl.textContent = safeFormatNumber(
-
-                pricedConversion.seriesShares
-
-            );
-
+        // =========================================================================
+        // SNAPSHOT 3: POST-ROUND CAP TABLE
+        // =========================================================================
         const postRound = buildPricedRoundCapTable(pricedConversion, state.rowData);
 
         const totalPostSharesEl = document.getElementById("total-post-shares-val");
+        if (totalPostSharesEl) totalPostSharesEl.textContent = safeFormatNumber(postRound.total.shares);
 
-        if (totalPostSharesEl)
+        const foundersPost = postRound.common.filter((c) => c.category === "Founder");
+        const totalFounderPctPost = foundersPost.reduce((a, f) => a + f.ownershipPct, 0);
 
-            totalPostSharesEl.textContent = safeFormatNumber(postRound.total.shares);
+        // All "Pre" calculations happen 'Post-SAFE Pre-Round'
+        const commonSharesTotalPre = preRound.total.shares;
+        const founderSharesPre = preRound.common
+            .filter((c) => c.category === "Founder")
+            .reduce((a, c) => a + c.shares, 0);
 
-        const foundersPost = postRound.common.filter(
-
-            (c) => c.category === "Founder"
-
-        );
-
-        const totalFounderPctPost = foundersPost.reduce(
-
-            (a, f) => a + f.ownershipPct,
-
-            0
-
-        );
-
-        const commonSharesTotal = state.rowData
-            .filter((r) => r.type === CapTableRowType.Common)
-            .reduce((a, r) => a + r.shares, 0);
-
-        const founderSharesPre = state.rowData
-            .filter((r) => r.type === CapTableRowType.Common && r.category === "Founder")
-            .reduce((a, r) => a + r.shares, 0);
-
-        const totalFounderPctPre = commonSharesTotal > 0 ? founderSharesPre / commonSharesTotal : 0;
+        const totalFounderPctPre = commonSharesTotalPre > 0 ? founderSharesPre / commonSharesTotalPre : 0;
 
         const founderOwnershipEl = document.getElementById("founder-ownership-val");
+        if (founderOwnershipEl) founderOwnershipEl.textContent = safeFormatPercent(totalFounderPctPost);
 
-        if (founderOwnershipEl) {
-
-            founderOwnershipEl.textContent = safeFormatPercent(totalFounderPctPost);
-
-        }
-
-        const dilution =
-
-            totalFounderPctPre > 0 ? totalFounderPctPre - totalFounderPctPost : NaN;
-
+        const dilution = totalFounderPctPre > 0 ? totalFounderPctPre - totalFounderPctPost : NaN;
         const founderDilutionEl = document.getElementById("founder-dilution-val");
-
-        if (founderDilutionEl) {
-
-            founderDilutionEl.textContent = safeFormatPercent(dilution);
-
-        }
+        if (founderDilutionEl) founderDilutionEl.textContent = safeFormatPercent(dilution);
 
         const dilutionNoteEl = document.getElementById("dilution-summary-note");
-
         if (dilutionNoteEl) {
-
             const dilutionVal = isNaN(dilution) ? "—" : (dilution * 100).toFixed(2);
-
             dilutionNoteEl.textContent = `Founders diluted by ${dilutionVal} percentage points.`;
-
         }
 
-        const strictlyPreRound = buildStrictlyPreRoundCapTable(state.rowData);
-
-        renderBreakdownTable(strictlyPreRound, postRound, pricedConversion.pps);
-
+        // Pass Pre-Round (Post-SAFE) and Post-Round to the breakdown table.
+        renderBreakdownTable(preRound, postRound, pricedConversion.pps);
         renderPieChart(postRound);
-
         renderBarChart(totalFounderPctPre, totalFounderPctPost);
-
         renderAIAdvisor(preRound, postRound, pricedConversion, state, totalFounderPctPre);
 
     } catch (error) {
-
         console.error("Error updating UI:", error);
-
     }
-
 };
 
 const renderShareholders = (totalSharesS0) => {
@@ -1054,111 +915,63 @@ const renderSeriesInvestors = () => {
 
 const getRowData = (data) => {
     const rows = [];
-
     if (!data) return rows;
 
     if (data.common) {
-
         data.common.forEach((r) => {
-
             rows.push({
-
                 id: r.id,
-
                 name: r.name,
-
                 category: r.category || "Other",
-
                 shares: r.shares || 0,
-
                 ownershipPct: r.ownershipPct || 0,
-
                 isPricedOrSafe: false,
-
             });
-
         });
-
     }
 
     if (data.safes) {
-
         data.safes.forEach((s) => {
-
             rows.push({
-
                 id: s.id,
-
                 name: s.name,
-
-                category: "SAFE Converter",
-
+                category: "Investor", // Branding for SAFEs in the table
                 shares: s.shares || 0,
-
                 ownershipPct: s.ownershipPct || 0,
-
                 isPricedOrSafe: true,
-
                 pps_val: s.pps,
-
                 conversionType: s.conversionType,
-
                 isMFN: isMFN(s),
-
             });
-
         });
-
     }
 
     if (data.series) {
-
         data.series.forEach((se) => {
-
             rows.push({
-
                 id: se.id,
-
                 name: se.name || "New Investor",
-
-                category: "New Investor",
-
+                category: "Investor",
                 shares: se.shares || 0,
-
                 ownershipPct: se.ownershipPct || 0,
-
                 isPricedOrSafe: true,
-
                 pps_val: se.pps,
-
             });
-
         });
-
     }
 
     if (data.refreshedOptionsPool && data.refreshedOptionsPool.shares > 0) {
-
         rows.push({
-
             id: "UnusedOptionsPool",
-
-            name: "ESOP pool (unallocated)",
-
-            category: "ESOP pool (unallocated)",
-
+            name: "Option Pool",
+            category: "Option Pool",
             shares: data.refreshedOptionsPool.shares || 0,
-
             ownershipPct: data.refreshedOptionsPool.ownershipPct || 0,
-
             isPricedOrSafe: false,
-
         });
-
     }
 
     return rows;
-
 };
 
 const renderBreakdownTable = (preData, postData, pps) => {
@@ -1188,10 +1001,13 @@ const renderBreakdownTable = (preData, postData, pps) => {
         clone.querySelector(".row-display-name").textContent = post.name || pre.name || "—";
         
         let tagsHtml = "";
-        if (post.isPricedOrSafe && post.category === "SAFE Converter") {
-            if (post.isMFN) tagsHtml += `<span class="tag tag-mfn">MFN SAFE</span>`;
-            else if (post.conversionType === "pre") tagsHtml += `<span class="tag tag-pre">Pre-money SAFE</span>`;
-            else tagsHtml += `<span class="tag tag-post">Post-money SAFE</span>`;
+        if (post.isPricedOrSafe && post.category === "Investor") {
+            const safeMatch = postData.safes?.find(s => s.id === id);
+            if (safeMatch) {
+                if (safeMatch.isMFN) tagsHtml += `<span class="tag tag-mfn">MFN SAFE</span>`;
+                else if (safeMatch.conversionType === "pre") tagsHtml += `<span class="tag tag-pre">Pre-money SAFE</span>`;
+                else tagsHtml += `<span class="tag tag-post">Post-money SAFE</span>`;
+            }
         }
         if (post.id === "UnusedOptionsPool" && postSharesValid && pre.shares >= 0 && post.shares > pre.shares + 1) {
             tagsHtml += `<span class="tag tag-topup">Pool top-up</span>`;
@@ -1216,8 +1032,8 @@ const renderBreakdownTable = (preData, postData, pps) => {
         <td class="col-name" style="display: table-cell;">Total</td>
         <td class="text-right pre-value">${safeFormatNumber(preData.total.shares)}</td>
         <td class="text-right post-value post-shares-value">${safeFormatNumber(postData.total.shares)}</td>
-        <td class="text-right pre-value">${preSharesValid ? "100.00%" : "—"}</td>
-        <td class="text-right post-value post-pct-value">${postSharesValid ? "100.00%" : "—"}</td>
+        <td class="text-right pre-value">${preSharesValid && preData.total.shares > 0 ? "100.00%" : "—"}</td>
+        <td class="text-right post-value post-pct-value">${postSharesValid && postData.total.shares > 0 ? "100.00%" : "—"}</td>
         <td class="text-right"></td>
     `;
     container.appendChild(totalTr);
@@ -1252,11 +1068,7 @@ const renderPieChart = (postRound) => {
     const categoryPalettes = {
         "Founder": ["#5F17EA", "#7C3AED", "#9333EA", "#A855F7", "#C084FC", "#D8B4FE"],
         "Investor": ["#3B82F6", "#60A5FA", "#93C5FD", "#BFDBFE", "#2563EB", "#1D4ED8"],
-        "Series Investor": ["#06B6D4", "#22D3EE", "#67E8F9", "#A5F3FC"],
-        "New Investor": ["#06B6D4", "#22D3EE", "#67E8F9", "#A5F3FC"],
-        "SAFE Converter": ["#10B981", "#34D399", "#6EE7B7", "#A7F3D0"],
-        "ESOP pool (unallocated)": ["#FACC15", "#FDE047", "#FEF08A"],
-        "ESOP pool (granted)": ["#F59E0B", "#FBBF24", "#FCD34D"],
+        "Option Pool": ["#FACC15", "#FDE047", "#FEF08A"],
         "Other": ["#64748B", "#94A3B8", "#CBD5E1"]
     };
 
@@ -1918,18 +1730,28 @@ const prepareReportData = () => {
         .reduce((sum, r) => sum + (r.investment || 0), 0);
     const totalRaised = formatUSDWithCommas(totalRaisedVal);
 
-    // Get current priced conversion data for table
+    // =========================================================================
+    // SNAPSHOT 2: PRE-ROUND (Post-SAFE)
+    // =========================================================================
+    const preRound = buildEstimatedPreRoundCapTable(state.rowData);
+
+    // =========================================================================
+    // SNAPSHOT 3: POST-ROUND
+    // =========================================================================
     const rawSafes = state.rowData.filter(r => r.type === CapTableRowType.Safe);
     const populatedSafes = populateSafeCaps(rawSafes);
     const seriesInvs = state.rowData
         .filter(r => r.type === CapTableRowType.Series)
         .map(r => r.investment);
 
+    const unusedOptionsValue = state.rowData.find(r => r.id === "UnusedOptionsPool")?.shares || 0;
+    const commonSharesOnly = state.rowData.filter(r => r.type === CapTableRowType.Common && r.id !== "UnusedOptionsPool").reduce((sum, r) => sum + r.shares, 0);
+
     const pricedConversion = fitConversion(
         state.preMoney,
-        state.rowData.filter(r => r.type === CapTableRowType.Common && r.id !== "UnusedOptionsPool").reduce((sum, r) => sum + r.shares, 0),
+        commonSharesOnly,
         populatedSafes,
-        state.rowData.find(r => r.id === "UnusedOptionsPool")?.shares || 0,
+        unusedOptionsValue,
         state.targetOptionsPool,
         seriesInvs
     );
@@ -1939,7 +1761,7 @@ const prepareReportData = () => {
     const rows = [
         ...pricedTable.common.map(r => ({
             name: r.name,
-            preShares: r.shares,
+            preShares: preRound.common.find(pr => pr.id === r.id)?.shares || r.shares,
             postShares: r.shares,
             badge: null,
             isFounder: r.category === "Founder",
@@ -1949,6 +1771,7 @@ const prepareReportData = () => {
         ...pricedTable.safes.map(r => {
             let badge = null;
             let badgeStyle = "";
+            const safeMatch = populatedSafes.find(s => s.id === r.id);
             
             if (isMFN(r)) {
                 badge = "MFN SAFE";
@@ -1963,7 +1786,7 @@ const prepareReportData = () => {
             
             return {
                 name: r.name,
-                preShares: 0,
+                preShares: preRound.safes.find(ps => ps.id === r.id)?.shares || 0,
                 postShares: r.shares,
                 badge: badge,
                 badgeStyle: badgeStyle,
@@ -1971,7 +1794,7 @@ const prepareReportData = () => {
                 isSafe: true,
                 isInvestor: false,
                 investment: r.investment,
-                cap: r.cap,
+                cap: safeMatch?.cap || 0,
                 discount: r.discount ? (r.discount * 100).toFixed(0) + "%" : "None",
                 type: r.conversionType ? r.conversionType.charAt(0).toUpperCase() + r.conversionType.slice(1) + "-money" : "N/A"
             };
@@ -1990,7 +1813,7 @@ const prepareReportData = () => {
     ];
 
     if (pricedTable.refreshedOptionsPool && pricedTable.refreshedOptionsPool.shares > 0) {
-        const preOptions = state.rowData.find(r => r.id === "UnusedOptionsPool")?.shares || 0;
+        const preOptions = unusedOptionsValue;
         const postOptions = pricedTable.refreshedOptionsPool.shares;
         
         let badge = null;
@@ -2002,7 +1825,7 @@ const prepareReportData = () => {
         }
 
         rows.push({
-            name: "ESOP pool (unallocated)",
+            name: "Option Pool",
             preShares: preOptions,
             postShares: postOptions,
             badge: badge,
@@ -2013,14 +1836,11 @@ const prepareReportData = () => {
         });
     }
 
-    // Calculate pre-round ownership percentage manually if element is missing
-    const commonSharesTotal = state.rowData
-        .filter((r) => r.type === CapTableRowType.Common)
-        .reduce((a, r) => a + r.shares, 0);
-    const founderSharesPre = state.rowData
-        .filter((r) => r.type === CapTableRowType.Common && r.category === "Founder")
-        .reduce((a, r) => a + r.shares, 0);
-    const totalFounderPctPre = commonSharesTotal > 0 ? founderSharesPre / commonSharesTotal : 0;
+    const commonSharesTotalPre = preRound.total.shares;
+    const founderSharesPre = preRound.common
+        .filter((c) => c.category === "Founder")
+        .reduce((a, c) => a + c.shares, 0);
+    const totalFounderPctPre = commonSharesTotalPre > 0 ? founderSharesPre / commonSharesTotalPre : 0;
     const ownershipPre = safeFormatPercent(totalFounderPctPre);
 
     return {
